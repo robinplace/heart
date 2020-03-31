@@ -187,7 +187,7 @@ const SearchBox = ({ members, attendance, dispatch }) => {
 	}) : []
 
 	return [
-		h (`input`, { placeholder: `Search`, onChange, value: search }),
+		h (`input`, { placeholder: `Name or phone #`, onChange, value: search }),
 		...matches.slice (0, 10).map (member => h (SearchRow, { key: member.id, member, dates: attendance [member.id], dispatch })),
 	]
 }
