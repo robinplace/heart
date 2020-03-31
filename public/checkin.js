@@ -148,7 +148,7 @@ const toDate = timestamp => {
 
 const toTime = timestamp => {
 	const time = new Date (timestamp)
-	return `${(time.getHours () % 12 || 12) + 1}:${time.getMinutes ()} ${time.getHours () < 12 ? `AM` : `PM`}`
+	return `${(time.getHours () % 12 || 12) + 1}:${time.getMinutes ()}:${time.getSeconds ()} ${time.getHours () < 12 ? `AM` : `PM`}`
 }
 
 const fromTime = time => new Date (`${time} ${dateNow ()}`) * 1
