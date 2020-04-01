@@ -143,7 +143,7 @@ const useLoad = (loader, deps) => {
 
 const toDate = timestamp => {
 	const date = new Date (timestamp - 1000 * 60 * 60 * 4)
-	return `${date.getDate ()}/${date.getMonth () + 1}/${date.getFullYear ()}`
+	return `${date.getMonth ()}/${date.getDate () + 1}/${date.getFullYear ()}`
 }
 
 const toTime = timestamp => {
