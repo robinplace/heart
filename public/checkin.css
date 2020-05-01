@@ -20,8 +20,8 @@ input, select, textarea { padding: 5px; }
 .Topbar {
 	position: fixed;
 	top: 0; left: 0; right: 0;
-	padding-top: 60px;
-	height: 100px;
+	padding-top: 70px;
+	height: 110px;
 	border-bottom: 1px solid #bbb;
 	background-color: #fff;
 }
@@ -48,7 +48,7 @@ input, select, textarea { padding: 5px; }
 	margin: 10px;
 }
 .Search {
-	padding-top: 100px;
+	padding-top: 110px;
 }
 .Head { font-weight: bold; }
 .Row, .Head {
@@ -71,13 +71,12 @@ button.Cell { flex-basis: max-content; flex-shrink: 0; padding: 0 3px; margin: 5
 	flex-direction: column;
 	margin-left: auto;
 	align-self: stretch;
-	width: 620px;
 }
 .MembershipRow { height: 100%; }
 .MembershipRow:not([current]) { background-color: #f4cccc; }
 .MembershipPlan { width: 140px; }
 .MembershipStart { width: 105px; }
 .MembershipEnd { width: 105px; }
-.MembershipRenewal { width: 65px; }
+.MembershipRenewal { width: 75px; }
 .MembershipProblem, .MembershipChecks { width: 165px; }
 .MembershipChecks { display: flex; padding: 0; justify-content: end; }

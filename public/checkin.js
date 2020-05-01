@@ -13,28 +13,35 @@ const { render } = ReactDOM
 const { Provider, useSelector, useDispatch } = ReactRedux
 
 const loadedReducer = (s = {}, a) => { switch (a.type) {
-	case `LOAD`: return { ...s, [a.loader]: a.loaded }
+	case `LOADED`: return { ...s, [a.loader]: true }
+	case `LOAD_FAILED`: return { ...s, [a.loader]: false }
+	case `LOAD_RETRY`: return { ...s, [a.loader]: null }
 	default: return s
 } }
 const signedInReducer = (s = null, a) => { switch (a.type) {
 	case `SIGNIN`: return a.signedIn
 	default: return s
 } }
-const syncQueueReducer = (s = [], a) => s
+const syncQueueReducer = (s = [], a) => { switch (a.type) {
+	case `LOADED`: return a.payload.syncQueue || s
+	case `APPEND`: return [ ...s, a ]
+	case `UPDATE`: return [ ...s, a ]
+	default: return s
+} }
 const rowsReducer = (s = {}, a) => { switch (a.type) {
-	case `LOAD`: return a.rows || s
+	case `LOADED`: return a.payload.rows || s
 	default: return s
 } }
 const columnsReducer = (s = {}, a) => { switch (a.type) {
-	case `LOAD`: return a.columns || s
+	case `LOADED`: return a.payload.columns || s
 	default: return s
 } }
 const indexesReducer = (s = {}, a) => { switch (a.type) {
-	case `LOAD`: return a.indexes || s
+	case `LOADED`: return a.payload.indexes || s
 	default: return s
 } }
 const searchReducer = (s = ``, a) => { switch (a.type) {
-	case `SEARCH`: return a.search
+	case `SEARCH`: return a.payload.search
 	default: return s
 } }
 
@@ -152,12 +159,13 @@ const ordinal = n => n + ([,'st','nd','rd'][n%100>>3^1&&n%10]||'th')
 const Wrapper = () => {
 	return h (Fragment, {}, [
 		h (LocalLoader),
-		h (LocalListener),
+		h (LocalWorker),
 		h (GapiLoader),
 		h (Auth2Loader),
 		h (GapiInitLoader),
 		h (SignInListener),
 		h (SpreadsheetLoader),
+		h (SyncWorker),
 		h (App),
 	])
 }
@@ -165,14 +173,12 @@ const Wrapper = () => {
 const Loader = ({ loader, ready, promise, retry = true }) => {           
 	const dispatch = useDispatch ()
 	const loaded = useSelector (s => s.loaded [loader])
-	const interval = useRef ()
 	useEffect (() => {
 		if (ready === true && loaded === null) promise ().then (
-			payload => dispatch ({ type: `LOAD`, loader, loaded: true, ...payload }),
-			error => dispatch ({ type: `LOAD`, loader, loaded: false, error }))
-		if (ready === true && loaded === false && retry) interval.current = setInterval (
-			() => dispatch ({ type: `LOAD`, loader, loaded: null }), 2000)
-		return () => clearInterval (interval.current)
+			(payload = {}) => dispatch ({ type: `LOADED`, loader, payload }),
+			error => dispatch ({ type: `LOAD_FAILED`, loader, error }))
+		if (ready === true && loaded === false && retry) setTimeout (
+			() => dispatch ({ type: `LOAD_RETRY`, loader }), 2000)
 	}, [ ready, loaded ])
 	return null
 }
@@ -185,10 +191,10 @@ const LocalLoader = () => h (Loader, {
 			if (!state) rej ()
 			else res (JSON.parse (state))
 		})
-	}
+	},
 })
 
-const LocalListener = () => {
+const LocalWorker = () => {
 	const state = useSelector (s => s)
 	useEffect (() => {
 		localStorage.setItem (`state`, JSON.stringify (state))
@@ -207,17 +213,17 @@ const GapiLoader = () => h (Loader, {
 		script.addEventListener (`readystatechange`, ev => script.readyState === `complete` && res ())
 		script.addEventListener (`error`, ev => rej (ev))
 		document.body.appendChild (script)
-	})
+	}),
 })
 
 const Auth2Loader = () => h (Loader, {
 	loader: `auth2`, ready: useSelector (s => s.loaded.gapi),
-	promise: () => new Promise (res => gapi.load (`client:auth2`, res))
+	promise: () => new Promise (res => gapi.load (`client:auth2`, res)),
 })
 
 const GapiInitLoader = () => h (Loader, {
 	loader: `gapiInit`, ready: useSelector (s => s.loaded.auth2),
-	promise: () => gapi.client.init (GAPI_INIT)
+	promise: () => gapi.client.init (GAPI_INIT),
 })
 
 const SignInListener = () => {
@@ -266,8 +272,17 @@ const SpreadsheetLoader = () => h (Loader, {
 			eventsByDate: indexBy (rows.events, `date`),
 		}
 		return { rows, columns, indexes }
-	})
+	}),
 })
+
+const SyncWorker = () => {
+	const last = useSelector (s => s.syncQueue [s.syncQueue.length - 1])
+	useEffect (() => { switch (last && last.type) {
+		case `APPEND`: break
+		case `UPDATE`: break
+	} }, [ last ])
+	return null
+}
 
 const App = () => {
 	return h (Fragment, {}, [
@@ -298,21 +313,24 @@ const Indicator = () => {
 	const signIn = useCallback (() => gapi.auth2.getAuthInstance ().signIn ())
 	const signOut = useCallback (() => gapi.auth2.getAuthInstance ().signOut ())
 	const loaded = useSelector (s => s.loaded)
+	const syncing = useSelector (s => s.syncQueue.length)
 
 	return h (`span`, { class: `Indicator` }, [
-		h (`span`, { class: `IndicatorLoading` }, h (IndicatorLoading, { signedIn, loaded })),
+		h (`span`, { class: `IndicatorLoading` }, h (IndicatorLoading, { signedIn, loaded, syncing })),
 		signedIn === false && h (`button`, { onClick: signIn }, `Sign in` ),
 		signedIn === true && h (`button`, { onClick: signOut }, `Sign out` ),
 	])
 }
 
-const IndicatorLoading = ({ signedIn, loaded }) => {
-	if (!loaded.local) return `Loading cache`
+const IndicatorLoading = ({ signedIn, loaded, syncing }) => {
+	if (loaded.local === null) return `Loading cache`
 	if (!loaded.gapi) return `Loading gapi`
 	if (!loaded.auth2) return `Loading auth2 api`
-	if (!loaded.gapi) return `Initing gapi`
+	if (!loaded.gapiInit) return `Connecting to gapi`
 	if (signedIn === null) return `Loading sign in`
+	if (signedIn === false) return `Not signed in`
 	if (!loaded.spreadsheet) return `Loading data`
+	if (syncing > 0) return `Saving ${syncing} ${syncing === 1 ? `change` :`changes`}`
 	return null
 }
 
@@ -327,7 +345,7 @@ const SearchHead = () => {
 				h (`span`, { class: `Cell MembershipPlan` }, `Plan`),
 				h (`span`, { class: `Cell MembershipStart` }, `Start`),
 				h (`span`, { class: `Cell MembershipEnd` }, `End`),
-				h (`span`, { class: `Cell MembershipRenewal` }, ``),
+				h (`span`, { class: `Cell MembershipRenewal` }, `Renew`),
 				h (`span`, { class: `Cell MembershipProblem` }, `Check in`),
 			]),
 		]),
@@ -353,20 +371,12 @@ const PersonRow = ({ index }) => {
 	const person = useSelector (s => s.rows.people [index])
 	const attendanceIndexes = useSelector (s => s.indexes.attendanceByPerson [person.id] || [])
 
-	/*const hereToday = useCallback (() => {
-		const date = { member: member.id, date: dateToday (), time: timeNow () }
-		appendAttendance (member.id, date.date, date.time).then (() => {
-			dispatch ({ type: `HERE_TODAY`, member: member.id, date })
-		}, console.error)
-	}, [ member.id ])*/
-
 	return h (`div`, { class: `Row PersonRow` }, [
 		h (`span`, { class: `Cell PersonName` }, person.name),
 		h (`span`, { class: `Cell PersonPhone` }, person.phone),
 		h (`span`, { class: `Cell PersonRole` }, person.role),
 		h (`span`, { class: `Cell PersonNote` }, person.note),
-		h (`button`, { class: `Cell PersonEdit` }, `\u270F\uFE0F`),
-		h (`button`, { class: `Cell PersonEdit` }, `Add membership`),
+		/*h (`button`, { class: `Cell PersonEdit` }, `Add membership`),*/
 		h (PersonMemberships, { id: person.id }),
 	])
 }
@@ -389,6 +399,13 @@ const MembershipRow = ({ index }) => {
 	const current = !membership.end || fromDate (membership.end) < todayDate ()
 	const canCheckIn = !!current && !membership.problem
 
+	const dispatch = useDispatch ()
+
+	const checkIn = useCallback (() => {
+		const row = { person: membership.person, date: todayDate (), time: nowTime () }
+		dispatch ({ type: `APPEND`, sheet: `Attendance`, row })
+	}, [ dispatch, membership.person ])
+
 	return h (`div`, { class: `Row MembershipRow`, current: current ? `true` : null }, [
 		h (`span`, { class: `Cell MembershipPlan` }, membership.plan),
 		h (`span`, { class: `Cell MembershipStart` }, membership.start),
@@ -396,9 +413,8 @@ const MembershipRow = ({ index }) => {
 		h (`span`, { class: `Cell MembershipRenewal` }, membership.renewal && `(${ordinal (membership.renewal)})`),
 		canCheckIn || h (`span`, { class: `Cell MembershipProblem` }, membership.problem),
 		canCheckIn && h (`span`, { class: `Cell MembershipChecks` }, [
-			h (`button`, { class: `Cell MembershipCheckIn` }, `Check in`),
+			h (`button`, { class: `Cell MembershipCheckIn`, onClick: checkIn }, `Check in`),
 		]),
-		h (`button`, { class: `Cell MembershipEdit` }, `\u270F\uFE0F`),
 	])
 }
 
