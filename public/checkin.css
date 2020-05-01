@@ -1,0 +1,83 @@
+* {
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	vertical-align: top;
+	font-family: inherit;
+}
+html {
+	font: 400 15px/20px Lato;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+	overflow-y: scroll;
+}
+html, body {
+	margin: 0;
+}
+input, button, select, textarea { margin: 10px; }
+input, button, select { height: 30px; }
+input, select, textarea { padding: 5px; }
+.Topbar {
+	position: fixed;
+	top: 0; left: 0; right: 0;
+	padding-top: 60px;
+	height: 100px;
+	border-bottom: 1px solid #bbb;
+	background-color: #fff;
+}
+.SearchBox {
+	position: absolute;
+	top: 0; bottom: 0;
+	left: 0; right: 0;
+	display: flex;
+	justify-content: center;
+	margin: 10px;
+}
+.SearchInput {
+	width: 400px; height: 30px;
+}
+.Indicator {
+	position: absolute;
+	top: 0; bottom: 0;
+	right: 0; height: 30px;
+	margin: 10px;
+}
+.IndicatorLoading {
+	display: inline-block;
+	padding: 5px 0;
+	margin: 10px;
+}
+.Search {
+	padding-top: 100px;
+}
+.Head { font-weight: bold; }
+.Row, .Head {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+.Row, .Head {
+	border-top: 1px solid #bbb;
+	margin-top: -1px;
+}
+.Cell { padding: 10px; }
+button.Cell { flex-basis: max-content; flex-shrink: 0; padding: 0 3px; margin: 5px 3px; }
+.PersonName { width: 170px; }
+.PersonPhone { width: 110px; }
+.PersonRole { width: 100px; }
+.PersonNote { flex-basis: 0; flex-grow: 1; }
+.PersonMemberships {
+	display: flex;
+	flex-direction: column;
+	margin-left: auto;
+	align-self: stretch;
+	width: 620px;
+}
+.MembershipRow { height: 100%; }
+.MembershipRow:not([current]) { background-color: #f4cccc; }
+.MembershipPlan { width: 140px; }
+.MembershipStart { width: 105px; }
+.MembershipEnd { width: 105px; }
+.MembershipRenewal { width: 65px; }
+.MembershipProblem, .MembershipChecks { width: 165px; }
+.MembershipChecks { display: flex; padding: 0; justify-content: end; }
