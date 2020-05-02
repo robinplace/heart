@@ -10,7 +10,8 @@ const FROZEN_ROWS = 1
 const { createStore, combineReducers, applyMiddleware } = Redux
 const { createElement: h, Fragment, useState, useReducer, useMemo, useEffect, useCallback, useRef } = React
 const { render } = ReactDOM
-const { Provider, useSelector, useDispatch } = ReactRedux
+const { Provider, useSelector, shallowEqual, useDispatch } = ReactRedux
+const useShallowSelector = selector => useSelector (selector, shallowEqual)
 
 const loadedReducer = (s = {}, a) => { switch (a.type) {
 	case `LOADED`: return { ...s, [a.loader]: true }
@@ -24,24 +25,21 @@ const signedInReducer = (s = null, a) => { switch (a.type) {
 } }
 const syncQueueReducer = (s = [], a) => { switch (a.type) {
 	case `LOADED`: return a.payload.syncQueue || s
-	case `APPEND`: return [ ...s, a ]
-	case `UPDATE`: return [ ...s, a ]
+	case `SYNCED`: return s.filter (aa => aa !== a.action)
+	case `APPEND`: case `UPDATE`: return [ ...s, a ]
 	default: return s
 } }
 const rowsReducer = (s = {}, a) => { switch (a.type) {
 	case `LOADED`: return a.payload.rows || s
+	case `APPEND`: return { ...s, [a.sheet]: [ ...s [a.sheet], { ...a.row, index: s [a.sheet].length } ] }
 	default: return s
 } }
-const columnsReducer = (s = {}, a) => { switch (a.type) {
-	case `LOADED`: return a.payload.columns || s
-	default: return s
-} }
-const indexesReducer = (s = {}, a) => { switch (a.type) {
-	case `LOADED`: return a.payload.indexes || s
+const keysByOffsetReducer = (s = {}, a) => { switch (a.type) {
+	case `LOADED`: return a.payload.keysByOffset || s
 	default: return s
 } }
 const searchReducer = (s = ``, a) => { switch (a.type) {
-	case `SEARCH`: return a.payload.search
+	case `SEARCH`: return a.search
 	default: return s
 } }
 
@@ -50,8 +48,7 @@ const store = createStore (combineReducers ({
 	signedIn: signedInReducer,
 	syncQueue: syncQueueReducer,
 	rows: rowsReducer,
-	columns: columnsReducer,
-	indexes: indexesReducer,
+	keysByOffset: keysByOffsetReducer,
 	search: searchReducer,
 }), {
 	loaded: {
@@ -70,14 +67,12 @@ const store = createStore (combineReducers ({
 		attendance: [],
 		events: [],
 	},
-	columns: {
+	keysByOffset: {
 		people: {},
 		memberships: {},
 		plans: {},
 		attendance: {},
 		events: {},
-	},
-	indexes: {
 	},
 	search: ``,
 }, applyMiddleware (
@@ -95,28 +90,29 @@ const store = createStore (combineReducers ({
 ))
 
 const parseSheet = ({ values }) => {
-	if (values.length <= FROZEN_ROWS) return { rows: [], columns: [] }
+	if (values.length <= FROZEN_ROWS) return { rows: [], keysByOffset: [] }
 
 	const keysByOffset = values [FROZEN_ROWS - 1]
 	// prefers the first occurrence of a key
 	const offsetsByKey = keysByOffset.reduce ((offsets, key, offset) => ({ [key]: offset, ...offsets }), {})
 
-	const data = []
+	const rows = []
 	for (let i = FROZEN_ROWS; i < values.length; i++) {
 		const row = values [i]
 		if (row.length === 0) continue
-		data.push (row.reduce ((data, value, offset) => {
+		rows.push (row.reduce ((rows, value, offset) => {
 			const key = keysByOffset [offset]
-			if (!key) return data
+			if (!key) return rows
 			// again, prefer the first occurrence
-			return { [key]: value, ...data }
-		}, { index: data.length, row: i + 1 }))
+			return { [key]: value, ...rows }
+		}, { index: rows.length }))
 	}
 
-	return { rows: data, columns: offsetsByKey }
+	return { rows, keysByOffset }
 }
 
-const indexBy = (rows, key) => {
+// not gonna prematurely optimize
+/*const indexBy = (rows, key) => {
 	const object = {}
 	rows.forEach (row => {
 		const index = row [key]
@@ -124,29 +120,10 @@ const indexBy = (rows, key) => {
 		else object [index] = [ row.index ]
 	})
 	return object
-}
+}*/
 
-const appendAttendance = (member, date, time) => gapi.client.sheets.spreadsheets.values.append ({
-	spreadsheetId: SPREADSHEET_ID,
-	range: `Attendance!A:ZZ`,
-	valueInputOption: `USER_ENTERED`,
-	insertDataOption: `INSERT_ROWS`,
-	includeValuesInResponse: true,
-	resource: { values: [
-		[ member, `=VLOOKUP(A:A,Members!$A:$B,2,false)`, date, `=VLOOKUP(C:C,Events!$A:$B,2,false)`, time ],
-	] },
-}).then (response => {
-})
-
-const toDate = timestamp => {
-	const date = new Date (timestamp - 1000 * 60 * 60 * 4)
-	return `${date.getMonth () + 1}/${date.getDate ()}/${date.getFullYear ()}`
-}
-
-const toTime = timestamp => {
-	const time = new Date (timestamp)
-	return `${(time.getHours () % 12 || 12) + 1}:${time.getMinutes ()}:${time.getSeconds ()} ${time.getHours () < 12 ? `AM` : `PM`}`
-}
+const toDate = timestamp => new Date (timestamp).toLocaleDateString (`en-US`, { month: `2-digit`, day: `2-digit`, year: `numeric` })
+const toTime = timestamp => new Date (timestamp).toLocaleTimeString (`en-US`, { hour: `numeric`, minute: `2-digit`, second: `2-digit`, hour12: true })
 
 const fromTime = time => new Date (`${time} ${todayDate ()}`) * 1
 const fromDate = date => new Date (`00:00:00 ${date}`) * 1
@@ -246,41 +223,47 @@ const SpreadsheetLoader = () => h (Loader, {
 	promise: () => gapi.client.sheets.spreadsheets.values.batchGet ({
 		spreadsheetId: SPREADSHEET_ID,
 		ranges: [
-			`People!A:ZZ`,
-			`Memberships!A:ZZ`,
-			`Plans!A:ZZ`,
-			`Attendance!A:ZZ`,
-			`Events!A:ZZ`,
+			`people!A:ZZ`,
+			`memberships!A:ZZ`,
+			`plans!A:ZZ`,
+			`attendance!A:ZZ`,
+			`events!A:ZZ`,
 		],
 	}).then (response => {
 		const ranges = response.result.valueRanges
-		const [ rows, columns ] = [
+		const [ rows, keysByOffset ] = [
 			`people`, `memberships`, `plans`, `attendance`, `events`
-		].reduce (([ rows, columns ], name, i) => {
+		].reduce (([ rows, keysByOffset ], name, i) => {
 			const sheet = parseSheet (ranges [i])
 			return [
 				{ ...rows, [name]: sheet.rows },
-				{ ...columns, [name]: sheet.columns },
+				{ ...keysByOffset, [name]: sheet.keysByOffset },
 			]
 		}, [ {}, {} ])
-		const indexes = {
-			peopleById: indexBy (rows.people, `id`),
-			membershipsByPerson: indexBy (rows.memberships, `person`),
-			plansById: indexBy (rows.plans, `id`),
-			attendanceByPerson: indexBy (rows.attendance, `person`),
-			attendanceByDate: indexBy (rows.attendance, `date`),
-			eventsByDate: indexBy (rows.events, `date`),
-		}
-		return { rows, columns, indexes }
+		return { rows, keysByOffset }
 	}),
 })
 
 const SyncWorker = () => {
-	const last = useSelector (s => s.syncQueue [s.syncQueue.length - 1])
-	useEffect (() => { switch (last && last.type) {
-		case `APPEND`: break
+	const ready = useSelector (s => s.loaded.spreadsheet)
+	const a = useSelector (s => s.syncQueue [s.syncQueue.length - 1])
+	const dispatch = useDispatch ()
+	useEffect (() => { if (ready) switch (a && a.type) {
+		case `APPEND`:
+			const keysByOffset = store.getState ().keysByOffset [a.sheet]
+			if (!keysByOffset) break
+			const values = keysByOffset.map (key => key ? a.row [key] : '')
+			gapi.client.sheets.spreadsheets.values.append ({
+				spreadsheetId: SPREADSHEET_ID,
+				range: `${a.sheet}!A:ZZ`,
+				valueInputOption: `USER_ENTERED`,
+				insertDataOption: `INSERT_ROWS`,
+				includeValuesInResponse: true,
+				resource: { values: [ values ] },
+			}).then (response => dispatch ({ type: `SYNCED`, action: a }))
+			break
 		case `UPDATE`: break
-	} }, [ last ])
+	} }, [ ready, a, dispatch ])
 	return null
 }
 
@@ -336,17 +319,17 @@ const IndicatorLoading = ({ signedIn, loaded, syncing }) => {
 
 const SearchHead = () => {
 	return h (`div`, { class: `Head PersonRow` }, [
-		h (`span`, { class: `Cell PersonName` }, `Name`),
-		h (`span`, { class: `Cell PersonPhone` }, `Phone`),
-		h (`span`, { class: `Cell PersonRole` }, `Role`),
-		h (`span`, { class: `Cell PersonNote` }, `Note`),
-		h (`div`, { class: `PersonMemberships` }, [
-			h (`div`, { class: `Row MembershipRow`, current: `true` }, [
-				h (`span`, { class: `Cell MembershipPlan` }, `Plan`),
-				h (`span`, { class: `Cell MembershipStart` }, `Start`),
-				h (`span`, { class: `Cell MembershipEnd` }, `End`),
-				h (`span`, { class: `Cell MembershipRenewal` }, `Renew`),
-				h (`span`, { class: `Cell MembershipProblem` }, `Check in`),
+		h (`span`, { class: `Cell`, sheet: `people`, column: `name` }, `Name`),
+		h (`span`, { class: `Cell`, sheet: `people`, column: `phone` }, `Phone`),
+		h (`span`, { class: `Cell`, sheet: `people`, column: `role` }, `Role`),
+		h (`span`, { class: `Cell`, sheet: `people`, column: `note` }, `Note`),
+		h (`div`, { class: `Cell`, sheet: `people`, column: `memberships` }, [
+			h (`div`, { class: `Row`, sheet: `memberships`, current: `true` }, [
+				h (`span`, { class: `Cell`, sheet: `memberships`, column: `plan` }, `Plan`),
+				h (`span`, { class: `Cell`, sheet: `memberships`, column: `start` }, `Start`),
+				h (`span`, { class: `Cell`, sheet: `memberships`, column: `end` }, `End`),
+				h (`span`, { class: `Cell`, sheet: `memberships`, column: `renewal` }, `Renew`),
+				h (`span`, { class: `Cell`, sheet: `memberships`, column: `problem` }, `Check in`),
 			]),
 		]),
 	])
@@ -369,53 +352,85 @@ const Search = () => {
 
 const PersonRow = ({ index }) => {
 	const person = useSelector (s => s.rows.people [index])
-	const attendanceIndexes = useSelector (s => s.indexes.attendanceByPerson [person.id] || [])
+	const attendance = useShallowSelector (s => s.rows.attendance.filter (r => r.person === person.id))
+	const checkedIn = !!attendance.find (r => r.date === todayDate ())
 
 	return h (`div`, { class: `Row PersonRow` }, [
-		h (`span`, { class: `Cell PersonName` }, person.name),
-		h (`span`, { class: `Cell PersonPhone` }, person.phone),
-		h (`span`, { class: `Cell PersonRole` }, person.role),
-		h (`span`, { class: `Cell PersonNote` }, person.note),
-		/*h (`button`, { class: `Cell PersonEdit` }, `Add membership`),*/
-		h (PersonMemberships, { id: person.id }),
+		h (`span`, { class: `Cell`, sheet: `people`, column: `name` }, person.name),
+		h (`span`, { class: `Cell`, sheet: `people`, column: `phone` }, person.phone),
+		h (`span`, { class: `Cell`, sheet: `people`, column: `role` }, person.role),
+		h (`span`, { class: `Cell`, sheet: `people`, column: `note` }, person.note),
+		h (PersonMemberships, { id: person.id, checkedIn }),
 	])
 }
 
-const PersonMemberships = ({ id }) => {
-	const membershipIndexes = useSelector (s => s.indexes.membershipsByPerson [id] || [])
-	const memberships = useSelector (s => membershipIndexes.map (i => s.rows.memberships [i]))
+const PersonMemberships = ({ id, checkedIn }) => {
+	const memberships = useShallowSelector (s => s.rows.memberships.filter (r => r.person === id))
+
+	const dispatch = useDispatch ()
+
+	const newMembership = useCallback (() => {
+		const defaultPlan = store.getState ().rows.plans [0]
+		const row = { person: id, plan: defaultPlan.id, price: defaultPlan.price, start: todayDate (), end: ``, renewal: `` }
+		dispatch ({ type: `APPEND`, sheet: `memberships`, row })
+	}, [ dispatch, id ])
+
+	if (memberships.length === 0) return h (`div`, { class: `Row`, sheet: `memberships`, current: null }, [
+		h (Cell, { sheet: `memberships`, column: `problem` }, `NO MEMBERSHIP`),
+		h (ButtonCell, { sheet: `memberships`, column: `checkIn`,
+			onClick: newMembership }, `New membership`),
+	])
+
 	const sortedMemberships = memberships.sort ((a, b) => {
 		a = fromDate (a.start), b = fromDate (b.start)
 		return a < b ? 1 : a > b ? -1 : 0
 	})
 
-	return h (`div`, { class: `PersonMemberships` }, sortedMemberships.map (({ index }) => {
-		return h (MembershipRow, { key: index, index })
+	return h (`div`, { class: `Cell`, sheet: `people`, column: `memberships` }, sortedMemberships.map (({ index }, i) => {
+		return h (MembershipRow, { key: index, index, checkedIn, first: i === 0, newMembership })
 	}))
 }
 
-const MembershipRow = ({ index }) => {
+const MembershipRow = ({ index, first, checkedIn, newMembership }) => {
 	const membership = useSelector (s => s.rows.memberships [index])
 	const current = !membership.end || fromDate (membership.end) < todayDate ()
 	const canCheckIn = !!current && !membership.problem
+	const showNew = !current && !membership.problem && first
 
 	const dispatch = useDispatch ()
 
 	const checkIn = useCallback (() => {
 		const row = { person: membership.person, date: todayDate (), time: nowTime () }
-		dispatch ({ type: `APPEND`, sheet: `Attendance`, row })
+		dispatch ({ type: `APPEND`, sheet: `attendance`, row })
 	}, [ dispatch, membership.person ])
 
-	return h (`div`, { class: `Row MembershipRow`, current: current ? `true` : null }, [
-		h (`span`, { class: `Cell MembershipPlan` }, membership.plan),
-		h (`span`, { class: `Cell MembershipStart` }, membership.start),
-		h (`span`, { class: `Cell MembershipEnd` }, membership.end),
-		h (`span`, { class: `Cell MembershipRenewal` }, membership.renewal && `(${ordinal (membership.renewal)})`),
-		canCheckIn || h (`span`, { class: `Cell MembershipProblem` }, membership.problem),
-		canCheckIn && h (`span`, { class: `Cell MembershipChecks` }, [
-			h (`button`, { class: `Cell MembershipCheckIn`, onClick: checkIn }, `Check in`),
-		]),
+	return h (`div`, { class: `Row`, sheet: `memberships`, current: current && !membership.problem ? `true` : null }, [
+		h (EditCell, { sheet: `memberships`, index, column: `plan` }),
+		h (EditCell, { sheet: `memberships`, index, column: `start` }),
+		h (EditCell, { sheet: `memberships`, index, column: `end` }),
+		h (EditCell, { sheet: `memberships`, index, column: `renewal`,
+			prettify: v => v ? ordinal (v) : `` }),
+		h (EditCell, { sheet: `memberships`, index, column: `problem` }),
+		showNew && h (ButtonCell, { sheet: `memberships`, column: `checkIn`,
+			onClick: newMembership }, `New membership`),
+		canCheckIn && checkedIn && h (ButtonCell, { disabled: true }, `Checked in`),
+		canCheckIn && !checkedIn && h (ButtonCell, { sheet: `memberships`, column: `checkIn`,
+			onClick: checkIn }, `Check in`),
 	])
+}
+
+const Cell = ({ sheet, column, children }) => {
+	return h (`span`, { class: `Cell`, sheet, column }, children)
+}
+
+const EditCell = ({ sheet, index, column, prettify }) => {
+	const value = useSelector (s => s.rows [sheet] [index] [column])
+	const pretty = prettify ? prettify (value) : value
+	return h (`span`, { class: `Cell`, sheet, column }, pretty)
+}
+
+const ButtonCell = ({ sheet, column, disabled, onClick, children }) => {
+	return h (`button`, { class: `Cell`, column, disabled, onClick }, children)
 }
 
 document.addEventListener (`readystatechange`, ev => {

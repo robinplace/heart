@@ -49,6 +49,7 @@ input, select, textarea { padding: 5px; }
 }
 .Search {
 	padding-top: 110px;
+	padding-bottom: 210px;
 }
 .Head { font-weight: bold; }
 .Row, .Head {
@@ -60,23 +61,26 @@ input, select, textarea { padding: 5px; }
 	border-top: 1px solid #bbb;
 	margin-top: -1px;
 }
-.Cell { padding: 10px; }
+.PersonRow:not(.Head) {
+	min-height: 60px;
+}
+span.Cell { min-height: 40px; padding: 10px; cursor: text; }
 button.Cell { flex-basis: max-content; flex-shrink: 0; padding: 0 3px; margin: 5px 3px; }
-.PersonName { width: 170px; }
-.PersonPhone { width: 110px; }
-.PersonRole { width: 100px; }
-.PersonNote { flex-basis: 0; flex-grow: 1; }
-.PersonMemberships {
+.Cell[sheet=people][column=name] { width: 170px; }
+.Cell[sheet=people][column=phone] { width: 110px; }
+.Cell[sheet=people][column=role] { width: 100px; }
+.Cell[sheet=people][column=note] { flex-basis: 0; flex-grow: 1; }
+.Cell[sheet=people][column=memberships] {
 	display: flex;
 	flex-direction: column;
 	margin-left: auto;
 	align-self: stretch;
 }
-.MembershipRow { height: 100%; }
-.MembershipRow:not([current]) { background-color: #f4cccc; }
-.MembershipPlan { width: 140px; }
-.MembershipStart { width: 105px; }
-.MembershipEnd { width: 105px; }
-.MembershipRenewal { width: 75px; }
-.MembershipProblem, .MembershipChecks { width: 165px; }
-.MembershipChecks { display: flex; padding: 0; justify-content: end; }
+.Row[sheet=memberships] { height: 100%; width: 590px; }
+.Row[sheet=memberships]:not([current]) { background-color: #f4cccc; }
+.Cell[sheet=memberships][column=plan] { width: 140px; }
+.Cell[sheet=memberships][column=start] { width: 105px; }
+.Cell[sheet=memberships][column=end] { width: 105px; }
+.Cell[sheet=memberships][column=renewal] { width: 75px; }
+.Cell[sheet=memberships][column=problem] { flex-basis: 0; flex-grow: 1; }
+.Cell[sheet=memberships][column=checks] { flex-basis: max-content; }
