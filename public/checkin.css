@@ -64,8 +64,10 @@ input, select, textarea { padding: 5px; }
 .PersonRow:not(.Head) {
 	min-height: 60px;
 }
+form.Cell { padding: 5px; }
 span.Cell { min-height: 40px; padding: 10px; cursor: text; }
 button.Cell { flex-basis: max-content; flex-shrink: 0; padding: 0 3px; margin: 5px 3px; }
+.Cell input { width: 100%; margin: 0; }
 .Cell[sheet=people][column=name] { width: 170px; }
 .Cell[sheet=people][column=phone] { width: 110px; }
 .Cell[sheet=people][column=role] { width: 100px; }

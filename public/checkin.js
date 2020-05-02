@@ -32,6 +32,7 @@ const syncQueueReducer = (s = [], a) => { switch (a.type) {
 const rowsReducer = (s = {}, a) => { switch (a.type) {
 	case `LOADED`: return a.payload.rows || s
 	case `APPEND`: return { ...s, [a.sheet]: [ ...s [a.sheet], { ...a.row, index: s [a.sheet].length } ] }
+	case `UPDATE`: return { ...s, [a.sheet]: [ ...s [a.sheet].map (r => r.index === a.index ? { ...r, [a.column]: a.value } : r) ] }
 	default: return s
 } }
 const keysByOffsetReducer = (s = {}, a) => { switch (a.type) {
@@ -110,6 +111,8 @@ const parseSheet = ({ values }) => {
 
 	return { rows, keysByOffset }
 }
+
+const lettersByColumn = `ABCDEFGHIJKLMNOPQRSTUVWXYZ`.split (``)
 
 // not gonna prematurely optimize
 /*const indexBy = (rows, key) => {
@@ -248,10 +251,12 @@ const SyncWorker = () => {
 	const ready = useSelector (s => s.loaded.spreadsheet)
 	const a = useSelector (s => s.syncQueue [s.syncQueue.length - 1])
 	const dispatch = useDispatch ()
-	useEffect (() => { if (ready) switch (a && a.type) {
-		case `APPEND`:
+	useEffect (() => {
+		if (!ready || !a) {
+			return
+		} else if (a.type === `APPEND`) {
 			const keysByOffset = store.getState ().keysByOffset [a.sheet]
-			if (!keysByOffset) break
+			if (!keysByOffset) return
 			const values = keysByOffset.map (key => key ? a.row [key] : '')
 			gapi.client.sheets.spreadsheets.values.append ({
 				spreadsheetId: SPREADSHEET_ID,
@@ -261,9 +266,20 @@ const SyncWorker = () => {
 				includeValuesInResponse: true,
 				resource: { values: [ values ] },
 			}).then (response => dispatch ({ type: `SYNCED`, action: a }))
-			break
-		case `UPDATE`: break
-	} }, [ ready, a, dispatch ])
+		} else if (a.type === `UPDATE`) {
+			const keysByOffset = store.getState ().keysByOffset [a.sheet]
+			if (!keysByOffset) return
+			const column = keysByOffset.findIndex (key => key === a.column)
+			const letter = lettersByColumn [column]
+			if (!letter) return
+			gapi.client.sheets.spreadsheets.values.update ({
+				spreadsheetId: SPREADSHEET_ID,
+				range: `${a.sheet}!${letter}${a.index + 1 + FROZEN_ROWS}`,
+				valueInputOption: `USER_ENTERED`,
+				resource: { values: [ [ a.value ] ] },
+			}).then (response => dispatch ({ type: `SYNCED`, action: a }))
+		}
+	}, [ ready, a, dispatch ])
 	return null
 }
 
@@ -287,7 +303,7 @@ const SearchBox = () => {
 	const setSearch = useCallback (ev => dispatch ({ type: `SEARCH`, search: ev.target.value }), [ dispatch ])
 	return h (`div`, { class: `SearchBox` }, [
 		h (`input`, { class: `SearchInput`, placeholder: `Search by name or phone #`, onInput: setSearch, value: search }),
-		h (`button`, {}, `Add person`),
+		//h (`button`, {}, `Add person`),
 	])
 }
 
@@ -356,10 +372,10 @@ const PersonRow = ({ index }) => {
 	const checkedIn = !!attendance.find (r => r.date === todayDate ())
 
 	return h (`div`, { class: `Row PersonRow` }, [
-		h (`span`, { class: `Cell`, sheet: `people`, column: `name` }, person.name),
-		h (`span`, { class: `Cell`, sheet: `people`, column: `phone` }, person.phone),
-		h (`span`, { class: `Cell`, sheet: `people`, column: `role` }, person.role),
-		h (`span`, { class: `Cell`, sheet: `people`, column: `note` }, person.note),
+		h (EditCell, { sheet: `people`, index, column: `name` }),
+		h (EditCell, { sheet: `people`, index, column: `phone` }),
+		h (EditCell, { sheet: `people`, index, column: `role` }),
+		h (EditCell, { sheet: `people`, index, column: `note` }),
 		h (PersonMemberships, { id: person.id, checkedIn }),
 	])
 }
@@ -425,8 +441,30 @@ const Cell = ({ sheet, column, children }) => {
 
 const EditCell = ({ sheet, index, column, prettify }) => {
 	const value = useSelector (s => s.rows [sheet] [index] [column])
-	const pretty = prettify ? prettify (value) : value
-	return h (`span`, { class: `Cell`, sheet, column }, pretty)
+	const [ editing, setEditing ] = useState (false)
+	const [ temp, setTemp ] = useState (``)
+	const input = useCallback (ev => setTemp (ev.target.value), [ setTemp ])
+	const startEditing = useCallback (() => {
+		setTemp (value)
+		setEditing (true)
+	}, [ value, setEditing ])
+	const dispatch = useDispatch ()
+	const stopEditing = useCallback (() => {
+		if (value !== temp) dispatch ({ type: `UPDATE`, sheet, index, column, value: temp })
+		setEditing (false)
+	}, [ dispatch, sheet, index, column, temp, setEditing ])
+	const inputRef = useRef (null)
+	useEffect (() => { editing && inputRef.current.select () }, [ editing ])
+
+	if (editing) {
+		return h (`form`, { class: `Cell`, sheet, column, onSubmit: stopEditing }, [
+			h (`input`, { ref: inputRef, value: temp, onInput: input, onBlur: stopEditing })
+		])
+	} else {
+		const pretty = prettify ? prettify (value) : value
+		return h (`span`, { class: `Cell`, sheet, column,
+			onDoubleClick: startEditing }, pretty)
+	}
 }
 
 const ButtonCell = ({ sheet, column, disabled, onClick, children }) => {
