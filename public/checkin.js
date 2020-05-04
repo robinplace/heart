@@ -360,8 +360,8 @@ const Search = () => {
 	const people = useSelector (s => s.rows.people)
 	const search = useSelector (s => s.search)
 	const matches = people.filter (person => {
-		if (person.name.toLowerCase ().indexOf (search.toLowerCase ()) !== -1) return true
-		if (person.phone.indexOf (search) !== -1) return true
+		if (person.name && person.name.toLowerCase ().indexOf (search.toLowerCase ()) !== -1) return true
+		if (person.phone && person.phone.indexOf (search) !== -1) return true
 		return false
 	})
 	return h (`div`, { class: `Search` }, [
@@ -426,8 +426,10 @@ const MembershipRow = ({ index, first, checkedIn, newMembership }) => {
 
 	return h (`div`, { class: `Row`, sheet: `memberships`, current: current && !membership.problem ? `true` : null }, [
 		h (EditCell, { sheet: `memberships`, index, column: `plan` }),
-		h (EditCell, { sheet: `memberships`, index, column: `start` }),
-		h (EditCell, { sheet: `memberships`, index, column: `end` }),
+		h (EditCell, { sheet: `memberships`, index, column: `start`,
+			prettify: d => isNaN (new Date (d)) ? d : toDate (d) }),
+		h (EditCell, { sheet: `memberships`, index, column: `end`,
+			prettify: d => isNaN (new Date (d)) ? d : toDate (d) }),
 		h (EditCell, { sheet: `memberships`, index, column: `renewal`,
 			prettify: v => v ? ordinal (v) : `` }),
 		h (EditCell, { sheet: `memberships`, index, column: `problem` }),
