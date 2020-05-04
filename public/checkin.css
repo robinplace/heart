@@ -78,7 +78,11 @@ button.Cell { flex-basis: max-content; flex-shrink: 0; padding: 0 3px; margin: 5
 	align-self: stretch;
 }
 .Row[sheet=memberships] { height: 100%; width: 880px; }
-.Row[sheet=memberships]:not([current]) { background-color: #f4cccc; }
+/*.Row[sheet=memberships]:not([current]) { background-color: #f4cccc; }*/
+/*.Row[sheet=memberships]:not(:first-child) { background-color: #efefef; }*/
+.Row[sheet=memberships]:first-child { background-color: #f4cccc; }
+.Row[sheet=memberships]:first-child[current] { background-color: #d9ead3; }
+.Head .Row[sheet=memberships] { background-color: transparent; }
 .Cell[sheet=memberships][column=plan] { width: 140px; }
 .Cell[sheet=memberships][column=start] { width: 105px; }
 .Cell[sheet=memberships][column=end] { width: 105px; }

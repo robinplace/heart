@@ -351,7 +351,7 @@ const SearchHead = () => {
 		h (`span`, { class: `Cell`, sheet: `people`, column: `phone` }, `Phone`),
 		h (`span`, { class: `Cell`, sheet: `people`, column: `note` }, `Note`),
 		h (`div`, { class: `Cell`, sheet: `people`, column: `memberships` }, [
-			h (`div`, { class: `Row`, sheet: `memberships`, current: `true` }, [
+			h (`div`, { class: `Row`, sheet: `memberships` }, [
 				h (`span`, { class: `Cell`, sheet: `memberships`, column: `plan` }, `Plan`),
 				h (`span`, { class: `Cell`, sheet: `memberships`, column: `start` }, `Start`),
 				h (`span`, { class: `Cell`, sheet: `memberships`, column: `end` }, `End`),
