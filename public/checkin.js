@@ -307,7 +307,8 @@ const SearchBox = () => {
 
 const CheckInCount = () => {
 	const attendance = useSelector (s => s.rows.attendance)
-	const count = attendance.filter (r => toDate (r.date) === todayDate ()).length
+	const today = todayDate ()
+	const count = attendance.filter (r => r.date === today).length
 	return h (`span`, {}, `${count} ${count === 1 ? `person` : `people`} checked in today`)
 }
 
@@ -355,7 +356,8 @@ const SearchHead = () => {
 				h (`span`, { class: `Cell`, sheet: `memberships`, column: `start` }, `Start`),
 				h (`span`, { class: `Cell`, sheet: `memberships`, column: `end` }, `End`),
 				h (`span`, { class: `Cell`, sheet: `memberships`, column: `renewal` }, `Renew`),
-				h (`span`, { class: `Cell`, sheet: `memberships`, column: `problem` }, `Check in`),
+				h (`span`, { class: `Cell`, sheet: `memberships`, column: `checkin` }, `Check in`),
+				h (`span`, { class: `Cell`, sheet: `memberships`, column: `note` }, `Note`),
 			]),
 		]),
 	])
@@ -401,8 +403,8 @@ const PersonMemberships = ({ id, checkedIn }) => {
 	}, [ dispatch, id ])
 
 	if (memberships.length === 0) return h (`div`, { class: `Row`, sheet: `memberships`, current: null }, [
-		h (Cell, { sheet: `memberships`, column: `problem` }, `NO MEMBERSHIP`),
-		h (ButtonCell, { sheet: `memberships`, column: `checkIn`,
+		h (Cell, { sheet: `memberships`, column: `checkin` }, `NO MEMBERSHIP`),
+		h (ButtonCell, { sheet: `memberships`, column: `newmembership`,
 			onClick: newMembership }, `New membership`),
 	])
 
@@ -419,8 +421,8 @@ const PersonMemberships = ({ id, checkedIn }) => {
 const MembershipRow = ({ index, first, checkedIn, newMembership }) => {
 	const membership = useSelector (s => s.rows.memberships [index])
 	const current = !membership.end || (fromDate (membership.end) + 1000 * 60 * 60 * 24 >= Date.now () - 1000 * 60 * 60 * 4)
-	const canCheckIn = !!current && !membership.problem
-	const showNew = !current && !membership.problem && first
+	const canCheckIn = !!current
+	const showNew = !current && first
 
 	const dispatch = useDispatch ()
 
@@ -429,7 +431,7 @@ const MembershipRow = ({ index, first, checkedIn, newMembership }) => {
 		dispatch ({ type: `APPEND`, sheet: `attendance`, row })
 	}, [ dispatch, membership.person ])
 
-	return h (`div`, { class: `Row`, sheet: `memberships`, current: current && !membership.problem ? `true` : null }, [
+	return h (`div`, { class: `Row`, sheet: `memberships`, current: current ? `true` : null }, [
 		h (EditCell, { sheet: `memberships`, index, column: `plan` }),
 		h (EditCell, { sheet: `memberships`, index, column: `start`,
 			prettify: d => isNaN (new Date (d)) ? d : toDate (d) }),
@@ -437,12 +439,14 @@ const MembershipRow = ({ index, first, checkedIn, newMembership }) => {
 			prettify: d => isNaN (new Date (d)) ? d : toDate (d) }),
 		h (EditCell, { sheet: `memberships`, index, column: `renewal`,
 			prettify: v => v ? ordinal (v) : `` }),
-		h (EditCell, { sheet: `memberships`, index, column: `problem` }),
-		showNew && h (ButtonCell, { sheet: `memberships`, column: `checkIn`,
-			onClick: newMembership }, `New membership`),
-		canCheckIn && checkedIn && h (ButtonCell, { disabled: true }, `Checked in`),
-		canCheckIn && !checkedIn && h (ButtonCell, { sheet: `memberships`, column: `checkIn`,
+		!canCheckIn && h (Cell, { sheet: `memberships`, column: `checkin` }, `MEMBERSHIP ISSUE TALK TO HOST`),
+		canCheckIn && checkedIn && h (ButtonCell, { sheet: `memberships`, column: `checkin`,
+			disabled: true }, `\u2714\uFE0F Checked in`),
+		canCheckIn && !checkedIn && h (ButtonCell, { sheet: `memberships`, column: `checkin`,
 			onClick: checkIn }, `Check in`),
+		h (EditCell, { sheet: `memberships`, index, column: `note` }),
+		showNew && h (ButtonCell, { sheet: `memberships`, column: `newmembership`,
+			onClick: newMembership }, `New membership`),
 	])
 }
 
@@ -479,7 +483,7 @@ const EditCell = ({ sheet, index, column, prettify }) => {
 }
 
 const ButtonCell = ({ sheet, column, disabled, onClick, children }) => {
-	return h (`button`, { class: `Cell`, column, disabled, onClick }, children)
+	return h (`button`, { class: `Cell`, sheet, column, disabled, onClick }, children)
 }
 
 document.addEventListener (`readystatechange`, ev => {
