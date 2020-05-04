@@ -298,12 +298,17 @@ const Topbar = () => {
 	])
 }
 const SearchBox = () => {
-	const count = useSelector (s => s.rows.attendance.filter (r => r.date === todayDate ())).length
 	return h (`div`, { class: `SearchBox` }, [
 		h (SearchInput),
 		//h (`button`, {}, `Add person`),
-		h (`span`, {}, `${count} ${count === 1 ? `person` : `people`} checked in today`),
+		h (CheckInCount),
 	])
+}
+
+const CheckInCount = () => {
+	const attendance = useSelector (s => s.rows.attendance)
+	const count = attendance.filter (r => toDate (r.date) === todayDate ()).length
+	return h (`span`, {}, `${count} ${count === 1 ? `person` : `people`} checked in today`)
 }
 
 const SearchInput = () => {
