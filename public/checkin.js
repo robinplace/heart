@@ -381,7 +381,8 @@ const Search = () => {
 const PersonRow = ({ index }) => {
 	const person = useSelector (s => s.rows.people [index])
 	const attendance = useShallowSelector (s => s.rows.attendance.filter (r => r.person === person.id))
-	const checkedIn = !!attendance.find (r => r.date === todayDate ())
+	const today = todayDate ()
+	const checkedIn = !!attendance.find (r => r.date === today)
 
 	return h (`div`, { class: `Row PersonRow` }, [
 		h (EditCell, { sheet: `people`, index, column: `name` }),
