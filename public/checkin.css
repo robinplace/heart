@@ -27,12 +27,12 @@ input, select, textarea { padding: 5px; }
 }
 .SearchBox {
 	position: absolute;
-	top: 0; bottom: 0;
-	left: 0; right: 0;
+	top: 0; left: 0;
 	display: flex;
 	justify-content: center;
 	margin: 10px;
 }
+.SearchBox span { padding: 15px; }
 .SearchInput {
 	width: 400px; height: 30px;
 }

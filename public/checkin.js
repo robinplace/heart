@@ -298,13 +298,19 @@ const Topbar = () => {
 	])
 }
 const SearchBox = () => {
+	const count = useSelector (s => s.rows.attendance.filter (r => r.date === todayDate ())).length
+	return h (`div`, { class: `SearchBox` }, [
+		h (SearchInput),
+		//h (`button`, {}, `Add person`),
+		h (`span`, {}, `${count} ${count === 1 ? `person` : `people`} checked in today`),
+	])
+}
+
+const SearchInput = () => {
 	const dispatch = useDispatch ()
 	const search = useSelector (s => s.search)
 	const setSearch = useCallback (ev => dispatch ({ type: `SEARCH`, search: ev.target.value }), [ dispatch ])
-	return h (`div`, { class: `SearchBox` }, [
-		h (`input`, { class: `SearchInput`, placeholder: `Search by name or phone #`, onInput: setSearch, value: search }),
-		//h (`button`, {}, `Add person`),
-	])
+	return h (`input`, { class: `SearchInput`, placeholder: `Search by name or phone #`, onInput: setSearch, value: search })
 }
 
 const Indicator = () => {
