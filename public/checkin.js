@@ -415,7 +415,7 @@ const PersonMemberships = ({ id, checkedIn }) => {
 
 const MembershipRow = ({ index, first, checkedIn, newMembership }) => {
 	const membership = useSelector (s => s.rows.memberships [index])
-	const current = !membership.end || fromDate (membership.end) < todayDate ()
+	const current = !membership.end || (fromDate (membership.end) + 1000 * 60 * 60 * 24 >= Date.now () - 1000 * 60 * 60 * 4)
 	const canCheckIn = !!current && !membership.problem
 	const showNew = !current && !membership.problem && first
 
