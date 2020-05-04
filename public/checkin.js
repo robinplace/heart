@@ -444,7 +444,7 @@ const MembershipRow = ({ index, first, checkedIn, newMembership }) => {
 		canCheckIn && checkedIn && h (ButtonCell, { sheet: `memberships`, column: `checkin`,
 			disabled: true }, `\u2714\uFE0F Checked in`),
 		canCheckIn && !checkedIn && h (ButtonCell, { sheet: `memberships`, column: `checkin`,
-			onClick: checkIn }, `Check in`),
+			onClick: checkIn }, `\u{1F449} Check in`),
 		h (EditCell, { sheet: `memberships`, index, column: `note` }),
 		showNew && h (ButtonCell, { sheet: `memberships`, column: `newmembership`,
 			onClick: newMembership }, `New membership`),
