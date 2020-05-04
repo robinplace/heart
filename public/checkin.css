@@ -70,7 +70,6 @@ button.Cell { flex-basis: max-content; flex-shrink: 0; padding: 0 3px; margin: 5
 .Cell input { width: 100%; margin: 0; }
 .Cell[sheet=people][column=name] { width: 170px; }
 .Cell[sheet=people][column=phone] { width: 110px; }
-.Cell[sheet=people][column=role] { width: 100px; }
 .Cell[sheet=people][column=note] { flex-basis: 0; flex-grow: 1; }
 .Cell[sheet=people][column=memberships] {
 	display: flex;

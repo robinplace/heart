@@ -343,7 +343,6 @@ const SearchHead = () => {
 	return h (`div`, { class: `Head PersonRow` }, [
 		h (`span`, { class: `Cell`, sheet: `people`, column: `name` }, `Name`),
 		h (`span`, { class: `Cell`, sheet: `people`, column: `phone` }, `Phone`),
-		h (`span`, { class: `Cell`, sheet: `people`, column: `role` }, `Role`),
 		h (`span`, { class: `Cell`, sheet: `people`, column: `note` }, `Note`),
 		h (`div`, { class: `Cell`, sheet: `people`, column: `memberships` }, [
 			h (`div`, { class: `Row`, sheet: `memberships`, current: `true` }, [
@@ -380,7 +379,6 @@ const PersonRow = ({ index }) => {
 	return h (`div`, { class: `Row PersonRow` }, [
 		h (EditCell, { sheet: `people`, index, column: `name` }),
 		h (EditCell, { sheet: `people`, index, column: `phone` }),
-		h (EditCell, { sheet: `people`, index, column: `role` }),
 		h (EditCell, { sheet: `people`, index, column: `note` }),
 		h (PersonMemberships, { id: person.id, checkedIn }),
 	])
