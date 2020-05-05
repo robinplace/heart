@@ -90,6 +90,12 @@ const store = createStore (combineReducers ({
 	}
 ))
 
+const uuid = (length = 6) => {
+	let uuid = ``
+	for (let i = 0; i < length; i++) uuid += (~~ (Math.random () * 16)).toString (16)
+	return uuid
+}
+
 const parseSheet = ({ values }) => {
 	if (values.length <= FROZEN_ROWS) return { rows: [], keysByOffset: [] }
 
@@ -298,9 +304,11 @@ const Topbar = () => {
 	])
 }
 const SearchBox = () => {
+	const dispatch = useDispatch ()
+	const addPerson = useCallback (() => dispatch ({ type: `APPEND`, sheet: `people`, row: { id: uuid (5), name: `First Last`, phone: `Phone`, note: `` } }))
 	return h (`div`, { class: `SearchBox` }, [
 		h (SearchInput),
-		//h (`button`, {}, `Add person`),
+		h (`button`, { onClick: addPerson }, `Add person`),
 		h (CheckInCount),
 	])
 }
@@ -371,6 +379,7 @@ const Search = () => {
 		if (person.phone && person.phone.indexOf (search) !== -1) return true
 		return false
 	})
+	matches.reverse ()
 	return h (`div`, { class: `Search` }, [
 		...matches.slice (0, 20).map (({ index }) => {
 			return h (PersonRow, { key: index, index })
