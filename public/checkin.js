@@ -403,10 +403,12 @@ const PersonMemberships = ({ id, checkedIn }) => {
 		dispatch ({ type: `APPEND`, sheet: `memberships`, row })
 	}, [ dispatch, id ])
 
-	if (memberships.length === 0) return h (`div`, { class: `Row`, sheet: `memberships`, current: null }, [
-		h (Cell, { sheet: `memberships`, column: `checkin` }, `NO MEMBERSHIP`),
-		h (ButtonCell, { sheet: `memberships`, column: `newmembership`,
-			onClick: newMembership }, `New membership`),
+	if (memberships.length === 0) return h (`div`, { class: `Cell`, sheet: `people`, column: `memberships` }, [
+		h (`div`, { class: `Row`, sheet: `memberships`, current: null }, [
+			h (Cell, { sheet: `memberships`, column: `checkin` }, `NO MEMBERSHIP`),
+			h (ButtonCell, { sheet: `memberships`, column: `newmembership`,
+				onClick: newMembership }, `New membership`),
+		]),
 	])
 
 	const sortedMemberships = memberships.sort ((a, b) => {
