@@ -90,9 +90,9 @@ const store = createStore (combineReducers ({
 	}
 ))
 
-const uuid = (length = 6) => {
+const uuid = (length = 5) => {
 	let uuid = ``
-	for (let i = 0; i < length; i++) uuid += (~~ (Math.random () * 16)).toString (16)
+	for (let i = 0; i < length; i++) uuid += (~~ (Math.random () * 26)).toString (26)
 	return uuid
 }
 
@@ -131,8 +131,17 @@ const lettersByColumn = `ABCDEFGHIJKLMNOPQRSTUVWXYZ`.split (``)
 	return object
 }*/
 
-const toDate = timestamp => new Date (timestamp).toLocaleDateString (`en-US`, { month: `2-digit`, day: `2-digit`, year: `numeric` })
-const toTime = timestamp => new Date (timestamp).toLocaleTimeString (`en-US`, { hour: `numeric`, minute: `2-digit`, second: `2-digit`, hour12: true })
+const d = new Date ()
+const toDate = timestamp => {
+	return timestamp
+	d.setTime (timestamp)
+	return d.toLocaleDateString (`en-US`, { month: `2-digit`, day: `2-digit`, year: `numeric` })
+}
+const toTime = timestamp => {
+	return timestamp
+	d.setTime (timestamp)
+	return d.toLocaleTimeString (`en-US`, { hour: `numeric`, minute: `2-digit`, second: `2-digit`, hour12: true })
+}
 
 const fromTime = time => new Date (`${time} ${todayDate ()}`) * 1
 const fromDate = date => new Date (`00:00:00 ${date}`) * 1
