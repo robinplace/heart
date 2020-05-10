@@ -264,37 +264,37 @@ const SpreadsheetLoader = () => h (Loader, {
 
 const SyncWorker = () => {
 	const ready = useSelector (s => s.loaded.spreadsheet)
-	const a = useSelector (s => s.syncQueue [s.syncQueue.length - 1])
+	const action = useSelector (s => s.syncQueue [0])
 	const dispatch = useDispatch ()
 	useEffect (() => {
-		if (!ready || !a) {
+		if (!ready || !action) {
 			return
-		} else if (a.type === `APPEND`) {
-			const keysByOffset = store.getState ().keysByOffset [a.sheet]
+		} else if (action.type === `APPEND`) {
+			const keysByOffset = store.getState ().keysByOffset [action.sheet]
 			if (!keysByOffset) return
-			const values = keysByOffset.map (key => key ? a.row [key] : '')
+			const values = keysByOffset.map (key => key ? action.row [key] : '')
 			gapi.client.sheets.spreadsheets.values.append ({
 				spreadsheetId: SPREADSHEET_ID,
-				range: `${a.sheet}!A:ZZ`,
+				range: `${action.sheet}!A:ZZ`,
 				valueInputOption: `USER_ENTERED`,
 				insertDataOption: `INSERT_ROWS`,
 				includeValuesInResponse: true,
 				resource: { values: [ values ] },
-			}).then (response => dispatch ({ type: `SYNCED`, action: a }))
-		} else if (a.type === `UPDATE`) {
-			const keysByOffset = store.getState ().keysByOffset [a.sheet]
+			}).then (response => dispatch ({ type: `SYNCED`, action }))
+		} else if (action.type === `UPDATE`) {
+			const keysByOffset = store.getState ().keysByOffset [action.sheet]
 			if (!keysByOffset) return
-			const column = keysByOffset.findIndex (key => key === a.column)
+			const column = keysByOffset.findIndex (key => key === action.column)
 			const letter = lettersByColumn [column]
 			if (!letter) return
 			gapi.client.sheets.spreadsheets.values.update ({
 				spreadsheetId: SPREADSHEET_ID,
-				range: `${a.sheet}!${letter}${a.index + 1 + FROZEN_ROWS}`,
+				range: `${action.sheet}!${letter}${action.index + 1 + FROZEN_ROWS}`,
 				valueInputOption: `USER_ENTERED`,
-				resource: { values: [ [ a.value ] ] },
-			}).then (response => dispatch ({ type: `SYNCED`, action: a }))
+				resource: { values: [ [ action.value ] ] },
+			}).then (response => dispatch ({ type: `SYNCED`, action }))
 		}
-	}, [ ready, a, dispatch ])
+	}, [ ready, action, dispatch ])
 	return null
 }
 
