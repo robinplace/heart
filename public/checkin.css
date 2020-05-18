@@ -6,17 +6,91 @@
 	font-family: inherit;
 }
 html {
-	font: 400 15px/20px Lato;
+	font: 400 15px/20px Lato, sans-serif;
 	white-space: pre-wrap;
 	overflow-wrap: break-word;
 	overflow-y: scroll;
 }
-html, body {
-	margin: 0;
+html, body { margin: 0; }
+
+input, button, select, textarea { font: inherit; }
+input, button, select, textarea { margin: 5px; }
+input, button, select { height: 40px; }
+input, select, textarea { padding: 10px; flex-grow: 1; }
+button { padding: 7px; cursor: pointer; }
+button[disabled] { cursor: default; }
+h1, h2, h3, h4, h5, h6 { flex-grow: 1; }
+h1, h2, h3, h4, h5, h6, p, span { margin: 5px; align-self: center; }
+span { display: inline-block; }
+h1 { display: block; color: #da2a27; }
+header { width: 100%; }
+
+.Row { display: flex; flex-direction: row; }
+.Column { display: flex; flex-direction: column; }
+.Spacer { flex-grow: 1; flex-basis: 0; }
+.App {
+	max-width: 1300px;
+	margin: 150px auto;
+	top: 0;
+	left: 0; right: 0;
 }
-input, button, select, textarea { margin: 10px; }
-input, button, select { height: 30px; }
-input, select, textarea { padding: 5px; }
+
+.SearchInput { width: auto; }
+
+.Membership { padding: 5px 0; }
+.Membership:not(:first-child) { border-top: 1px solid #ccc; margin-top: -1px; }
+.Membership.expired { color: #f4cccc; }
+.Cell.Person { width: 60px; }
+.Cell.Name { width: 160px; }
+.Cell.Note { text-align: right; }
+.Cell.Loyalty { text-align: right; width: 40px; }
+
+/*.Column {
+	display: flex; flex-direction: column;
+	width: 50%; border-left: 1px solid #ccc; margin-left: -1px;
+}
+.Header {
+	display: flex; flex-direction: row; flex-shrink: 0;
+	border-bottom: 1px solid #ccc; margin-bottom: -1px;
+	height: 60px; padding: 5px;
+}
+.Header input { flex-grow: 0; width: 50%; }
+.TodoHeader { justify-content: end; }
+.List { flex-grow: 0; flex-shrink: 0; overflow-y: scroll; flex-basis: calc(100vh - 60px); }
+
+.Todos>center { margin: 20px; }
+
+.Membership.filtered {
+	margin-bottom: -111px;
+	opacity: 0;
+	visibility: collapse;
+}
+.Membership.expired { background-color: #f4cccc; }
+.Membership { border-top: 1px solid #ccc; margin-top: -1px; }
+
+.Cell { display: inline-block; }
+.Cell.Buttons { flex-shrink: 0; margin-left: auto; }
+.Text { display: inline-block; padding: 5px; align-self: center; }
+
+.Row { display: flex; flex-direction: row; align-items: center; height: 50px; }
+.Membership { padding: 5px; }
+
+/*.Screen {
+	display: flex; flex-direction: column;
+	position: absolute; max-width: 650px; margin: 200px auto;
+	left: 0; right: 0;
+	top: 0; bottom: 0;
+}
+
+.SquareButton { width: 110px; height: 110px; }
+.SquareButton.Large { width: 240px; height: 240px; }
+.SquareButton .Emoji { display: block; font-size: 25px; line-height: 50px; }
+.SquareButton.Large .Emoji { font-size: 50px; line-height: 120px; }
+.BackButton { border: 0; background-color: transparent; width: 40px; min-width: auto; margin: -10px 10px -10px -50px; color: inherit; }
+
+.FlexRow { display: flex; flex-direction: row; }
+.FlexColumn { display: flex; flex-direction: column; }
+
 .Topbar {
 	position: fixed;
 	top: 0; left: 0; right: 0;
@@ -33,9 +107,6 @@ input, select, textarea { padding: 5px; }
 	margin: 10px;
 }
 .SearchBox span { padding: 15px; }
-.SearchInput {
-	width: 400px; height: 30px;
-}
 .Indicator {
 	position: absolute;
 	top: 0; bottom: 0;
@@ -78,8 +149,6 @@ button.Cell { flex-basis: max-content; flex-shrink: 0; padding: 0 3px; margin: 5
 	align-self: stretch;
 }
 .Row[sheet=memberships] { height: 100%; width: 880px; }
-/*.Row[sheet=memberships]:not([current]) { background-color: #f4cccc; }*/
-/*.Row[sheet=memberships]:not(:first-child) { background-color: #efefef; }*/
 .Row[sheet=memberships]:first-child { background-color: #f4cccc; }
 .Row[sheet=memberships]:first-child[current] { background-color: #d9ead3; }
 .Head .Row[sheet=memberships] { background-color: transparent; }
@@ -88,4 +157,4 @@ button.Cell { flex-basis: max-content; flex-shrink: 0; padding: 0 3px; margin: 5
 .Cell[sheet=memberships][column=end] { width: 105px; }
 .Cell[sheet=memberships][column=renewal] { width: 75px; }
 .Cell[sheet=memberships][column=checkin] { width: 170px; flex-basis: auto; }
-.Cell[sheet=memberships][column=note] { flex-basis: 0; flex-grow: 1; }
+.Cell[sheet=memberships][column=note] { flex-basis: 0; flex-grow: 1; }*/
