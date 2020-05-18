@@ -5,90 +5,91 @@ const GAPI_INIT = {
 	scope: `https://www.googleapis.com/auth/spreadsheets`,
 	discoveryDocs: [ `https://sheets.googleapis.com/$discovery/rest?version=v4` ],
 }
-const FROZEN_ROWS = 1
+const SHEETS = [
+	[ `memberships`, `Memberships`, 2 ],
+	[ `todo`,        `Todo`,        2 ],
+	[ `checkins`,    `Checkins`,    2 ],
+]
+const HEADINGS = [
+	[ `person`,  `PERSON`,  `id`     ],
+	[ `name`,    `NAME`,    `text`   ],
+	[ `phone`,   `PHONE`,   `phone`  ],
+	[ `plan`,    `PLAN`,    `text`   ],
+	[ `price`,   `PRICE`,   `number` ],
+	[ `start`,   `START`,   `date`   ],
+	[ `end`,     `END`,     `date`   ],
+	[ `note`,    `NOTE`,    `text`   ],
+	[ `type`,    `TYPE`,    `text`   ],
+	[ `months`,  `MONTHS`,  `number` ],
+	[ `date`,    `DATE`,    `date`   ],
+	[ `time`,    `TIME`,    `time`   ],
+	[ `todo`,    `TODO`,    `text`   ],
+]
 
 const { createStore, combineReducers, applyMiddleware } = Redux
-const { createElement: h, Fragment, useState, useReducer, useMemo, useEffect, useCallback, useRef } = React
+const { createElement: h, Fragment, memo, useState, useReducer, useMemo, useEffect, useCallback, useRef } = React
 const { render } = ReactDOM
 const { Provider, useSelector, shallowEqual, useDispatch } = ReactRedux
 const useShallowSelector = selector => useSelector (selector, shallowEqual)
 
-const loadedReducer = (s = {}, a) => { switch (a.type) {
-	case `LOADED`: return { ...s, [a.loader]: true }
-	case `LOAD_FAILED`: return { ...s, [a.loader]: false }
-	case `LOAD_RETRY`: return { ...s, [a.loader]: null }
-	default: return s
-} }
-const signedInReducer = (s = null, a) => { switch (a.type) {
-	case `SIGNIN`: return a.signedIn
-	default: return s
-} }
-const syncQueueReducer = (s = [], a) => { switch (a.type) {
-	case `LOADED`: return a.payload.syncQueue || s
-	case `SYNCED`: return s.filter (aa => aa !== a.action)
-	case `APPEND`: case `UPDATE`: return [ ...s, a ]
-	default: return s
-} }
-const rowsReducer = (s = {}, a) => { switch (a.type) {
-	case `LOADED`: return a.payload.rows || s
-	case `APPEND`: return { ...s, [a.sheet]: [ ...s [a.sheet], { ...a.row, index: s [a.sheet].length } ] }
-	case `UPDATE`: return { ...s, [a.sheet]: [ ...s [a.sheet].map (r => r.index === a.index ? { ...r, [a.column]: a.value } : r) ] }
-	default: return s
-} }
-const keysByOffsetReducer = (s = {}, a) => { switch (a.type) {
-	case `LOADED`: return a.payload.keysByOffset || s
-	default: return s
-} }
-const searchReducer = (s = ``, a) => { switch (a.type) {
-	case `SEARCH`: return a.search
-	default: return s
-} }
-
 const store = createStore (combineReducers ({
-	loaded: loadedReducer,
-	signedIn: signedInReducer,
-	syncQueue: syncQueueReducer,
-	rows: rowsReducer,
-	keysByOffset: keysByOffsetReducer,
-	search: searchReducer,
-}), {
-	loaded: {
+	loaded: (loaded = {
 		local: null,
 		gapi: null,
 		auth2: null,
 		gapiInit: null,
 		spreadsheet: null,
-	},
-	signedIn: null,
-	syncQueue: [],
-	rows: {
-		people: [],
+	}, action) => { switch (action.type) {
+		case `LOADED`: return { ...loaded, [action.loader]: true }
+		case `LOAD_FAILED`: return { ...loaded, [action.loader]: false }
+		case `LOAD_RETRY`: return { ...loaded, [action.loader]: null }
+		default: return loaded
+	} },
+	signedIn: (signedIn = null, action) => { switch (action.type) {
+		case `LOADED`: return action.payload.signedIn || signedIn
+		case `SIGNIN`: return action.signedIn
+		default: return signedIn
+	} },
+	syncQueue: (syncQueue = [], action) => { switch (action.type) {
+		case `LOADED`: return action.payload.syncQueue || syncQueue
+		case `SYNCED`: return syncQueue.filter (aa => aa !== action.action)
+		case `APPEND`: return [ ...syncQueue, action ]
+		default: return syncQueue
+	} },
+	rows: (rows = {
 		memberships: [],
-		plans: [],
-		attendance: [],
-		events: [],
-	},
-	keysByOffset: {
-		people: {},
-		memberships: {},
-		plans: {},
-		attendance: {},
-		events: {},
-	},
-	search: ``,
-}, applyMiddleware (
-	store => next => action => {
+		todo: [],
+		checkins: [],
+	}, action) => { switch (action.type) {
+		case `LOADED`: return action.payload.rows || rows
+		case `APPEND`: return { ...rows, [action.sheet]: [ ...rows [action.sheet], { ...action.row, index: rows [action.sheet].length } ] }
+		default: return rows
+	} },
+	keys: (keys = {
+		memberships: [],
+		todo: [],
+		checkins: [],
+	}, action) => { switch (action.type) {
+		case `LOADED`: return action.payload.keys || keys
+		default: return keys
+	} },
+	search: (search = { search: ``, count: 5 }, action) => { switch (action.type) {
+		case `LOADED`: return { ...search, ...action.payload.search }
+		case `SEARCH`: return action.search
+		default: return search
+	} },
+}), {}, applyMiddleware (store => next => action => {
+	const prev = store.getState ()
+	try {
+		return next (action)
+	} finally {
 		console.groupCollapsed (`action`, action.type)
-		console.log ('prev state', store.getState ())
+		console.log ('prev state', prev)
 		console.log ('action', action)
-		try {
-			return next (action)
-		} finally {
-			console.log ('next state', store.getState ())
-			console.groupEnd ()
-		}
+		console.log ('next state', window.state = store.getState ())
+		console.groupEnd ()
 	}
-))
+}))
 
 const uuid = (length = 5) => {
 	let uuid = ``
@@ -96,73 +97,92 @@ const uuid = (length = 5) => {
 	return uuid
 }
 
-const parseSheet = ({ values }) => {
-	if (values.length <= FROZEN_ROWS) return { rows: [], keysByOffset: [] }
+const parseSheet = ({ values }, headingRows) => {
+	if (values.length <= headingRows) return { rows: [], keys: [] }
 
-	const keysByOffset = values [FROZEN_ROWS - 1]
-	// prefers the first occurrence of a key
-	const offsetsByKey = keysByOffset.reduce ((offsets, key, offset) => ({ [key]: offset, ...offsets }), {})
+	const headings = values [headingRows - 1].map (text => HEADINGS.find (heading => heading [1] === text))
 
 	const rows = []
-	for (let i = FROZEN_ROWS; i < values.length; i++) {
+	for (let i = headingRows; i < values.length; i++) {
 		const row = values [i]
 		if (row.length === 0) continue
 		rows.push (row.reduce ((rows, value, offset) => {
-			const key = keysByOffset [offset]
-			if (!key) return rows
+			const heading = headings [offset]
+			if (!heading) return rows
+			const [ key, column, type ] = heading
 			// again, prefer the first occurrence
-			return { [key]: value, ...rows }
+			return { [key]: parseValue (value, type), ...rows }
 		}, { index: rows.length }))
 	}
 
-	return { rows, keysByOffset }
+	const keys = headings.map (heading => heading && heading [0])
+
+	return { rows, keys }
 }
+
+const parseValue = (value, type) => { switch (type) {
+	case `text`: return `${value}`.trim ()
+	case `date`: return value ? parseDate (value) : null
+	case `time`: return value ? parseTime (value) : null
+	case `number`: return `${value}`.replace (`$`, ``)  * 1 || 0
+	case `phone`: return `${value}`.trim ()
+	case `id`: return `${value}`.trim ()
+	default: return `${value}`.trim ()
+} }
 
 const lettersByColumn = `ABCDEFGHIJKLMNOPQRSTUVWXYZ`.split (``)
 
-// not gonna prematurely optimize
-/*const indexBy = (rows, key) => {
-	const object = {}
-	rows.forEach (row => {
-		const index = row [key]
-		if (object [index]) object [index].push (row.index)
-		else object [index] = [ row.index ]
+const appendSheet = (sheet, row) => {
+	const keys = store.getState ().keys [sheet]
+	if (!keys) return Promise.reject ()
+	const values = keys.map (key => {
+		if (!key) return ``
+		const type = HEADINGS.find (h => h [0] === key) [2]
+		return formatValue (row [key], type)
 	})
-	return object
-}*/
-
-const d = new Date ()
-const toDate = timestamp => {
-	return timestamp
-	d.setTime (timestamp)
-	return d.toLocaleDateString (`en-US`, { month: `2-digit`, day: `2-digit`, year: `numeric` })
-}
-const toTime = timestamp => {
-	return timestamp
-	d.setTime (timestamp)
-	return d.toLocaleTimeString (`en-US`, { hour: `numeric`, minute: `2-digit`, second: `2-digit`, hour12: true })
+	console.log (`INSERT_ROWS`, sheet, values)
+	return gapi.client.sheets.spreadsheets.values.append ({
+		spreadsheetId: SPREADSHEET_ID,
+		range: sheetToRange (SHEETS.find (s => s [0] === sheet) [1]),
+		valueInputOption: `USER_ENTERED`,
+		insertDataOption: `INSERT_ROWS`,
+		includeValuesInResponse: true,
+		resource: { values: [ values ] },
+	})
 }
 
-const fromTime = time => new Date (`${time} ${todayDate ()}`) * 1
-const fromDate = date => new Date (`00:00:00 ${date}`) * 1
+const formatValue = (value, type) => { switch (type) {
+	case `date`: return value ? formatDate (value) : ``
+	case `time`: return value ? formatTime (value) : ``
+	case `id`: return `'${value}`
+	default: return `${value}`
+} }
 
-const todayDate = () => toDate (Date.now () - 1000 * 60 * 60 * 4)
-const nowTime = () => toTime (Date.now ())
+const formatDate = timestamp => dateFns.format (timestamp, `MM/DD/YYYY`)
+const formatTime = timestamp => dateFns.format (timestamp, `h:mm:ss A`)
 
-const ordinal = n => n + ([,'st','nd','rd'][n%100>>3^1&&n%10]||'th')
+const parseDate = date => new Date (`12:00:00 AM ${date}`) * 1
+const parseTime = time => new Date (`${time} ${formatDate (timestampToday ())}`) * 1
+
+const timestampToday = () => parseDate (formatDate (Date.now () - 1000 * 60 * 60 * 4))
+const timestampNow = () => Date.now ()
+
+const toOrdinal = n => n + ([,'st','nd','rd'][n%100>>3^1&&n%10]||'th')
+
+const sheetToRange = sheet => `${sheet}!A:ZZ`
 
 const Wrapper = () => {
-	return h (Fragment, {}, [
+	return h (React.Fragment, null,
 		h (LocalLoader),
 		h (LocalWorker),
 		h (GapiLoader),
 		h (Auth2Loader),
 		h (GapiInitLoader),
 		h (SignInListener),
-		h (SpreadsheetLoader),
 		h (SyncWorker),
+		h (SpreadsheetLoader),
 		h (App),
-	])
+	)
 }
 
 const Loader = ({ loader, ready, promise, retry = true }) => {           
@@ -180,20 +200,26 @@ const Loader = ({ loader, ready, promise, retry = true }) => {
 
 const LocalLoader = () => h (Loader, {
 	loader: `local`, ready: true, retry: false,
-	promise: () => {
-		return new Promise ((res, rej) => {
-			const state = localStorage.getItem (`state`)
-			if (!state) rej ()
-			else res (JSON.parse (state))
-		})
-	},
+	promise: () => Promise.resolve ({
+		keys: JSON.parse (localStorage.getItem (`keys`) || `{}`),
+		rows: JSON.parse (localStorage.getItem (`rows`) || `{}`),
+		syncQueue: JSON.parse (localStorage.getItem (`syncQueue`) || `[]`),
+		signedIn: JSON.parse (localStorage.getItem (`signedIn`) || `false`),
+		search: JSON.parse (localStorage.getItem (`search`) || `{}`),
+	}),
 })
 
 const LocalWorker = () => {
-	const state = useSelector (s => s)
-	useEffect (() => {
-		localStorage.setItem (`state`, JSON.stringify (state))
-	}, [ state ])
+	const keys = useSelector (s => s.keys)
+	const rows = useSelector (s => s.rows)
+	const syncQueue = useSelector (s => s.syncQueue)
+	const signedIn = useSelector (s => s.signedIn)
+	const search = useSelector (s => s.search)
+	useEffect (() => localStorage.setItem (`keys`, JSON.stringify (keys)), [ keys ])
+	useEffect (() => localStorage.setItem (`rows`, JSON.stringify (rows)), [ rows ])
+	useEffect (() => localStorage.setItem (`syncQueue`, JSON.stringify (syncQueue)), [ syncQueue ])
+	useEffect (() => localStorage.setItem (`signedIn`, JSON.stringify (signedIn)), [ signedIn ])
+	useEffect (() => localStorage.setItem (`search`, JSON.stringify (search)), [ search ])
 	return null
 }
 
@@ -236,121 +262,65 @@ const SignInListener = () => {
 	return null
 }
 
-const SpreadsheetLoader = () => h (Loader, {
-	loader: `spreadsheet`, ready: useSelector (s => s.signedIn),
-	promise: () => gapi.client.sheets.spreadsheets.values.batchGet ({
-		spreadsheetId: SPREADSHEET_ID,
-		ranges: [
-			`people!A:ZZ`,
-			`memberships!A:ZZ`,
-			`plans!A:ZZ`,
-			`attendance!A:ZZ`,
-			`events!A:ZZ`,
-		],
-	}).then (response => {
-		const ranges = response.result.valueRanges
-		const [ rows, keysByOffset ] = [
-			`people`, `memberships`, `plans`, `attendance`, `events`
-		].reduce (([ rows, keysByOffset ], name, i) => {
-			const sheet = parseSheet (ranges [i])
-			return [
-				{ ...rows, [name]: sheet.rows },
-				{ ...keysByOffset, [name]: sheet.keysByOffset },
-			]
-		}, [ {}, {} ])
-		return { rows, keysByOffset }
-	}),
-})
-
 const SyncWorker = () => {
-	const ready = useSelector (s => s.loaded.spreadsheet)
+	const ready = useSelector (s => s.loaded.gapiInit && s.signedIn)
 	const action = useSelector (s => s.syncQueue [0])
 	const dispatch = useDispatch ()
 	useEffect (() => {
 		if (!ready || !action) {
 			return
 		} else if (action.type === `APPEND`) {
-			const keysByOffset = store.getState ().keysByOffset [action.sheet]
-			if (!keysByOffset) return
-			const values = keysByOffset.map (key => key ? action.row [key] : '')
-			gapi.client.sheets.spreadsheets.values.append ({
-				spreadsheetId: SPREADSHEET_ID,
-				range: `${action.sheet}!A:ZZ`,
-				valueInputOption: `USER_ENTERED`,
-				insertDataOption: `INSERT_ROWS`,
-				includeValuesInResponse: true,
-				resource: { values: [ values ] },
-			}).then (response => dispatch ({ type: `SYNCED`, action }))
-		} else if (action.type === `UPDATE`) {
-			const keysByOffset = store.getState ().keysByOffset [action.sheet]
-			if (!keysByOffset) return
-			const column = keysByOffset.findIndex (key => key === action.column)
-			const letter = lettersByColumn [column]
-			if (!letter) return
-			gapi.client.sheets.spreadsheets.values.update ({
-				spreadsheetId: SPREADSHEET_ID,
-				range: `${action.sheet}!${letter}${action.index + 1 + FROZEN_ROWS}`,
-				valueInputOption: `USER_ENTERED`,
-				resource: { values: [ [ action.value ] ] },
-			}).then (response => dispatch ({ type: `SYNCED`, action }))
+			appendSheet (action.sheet, action.row).then (response => dispatch ({ type: `SYNCED`, action }))
 		}
 	}, [ ready, action, dispatch ])
 	return null
 }
 
+const SpreadsheetLoader = () => h (Loader, {
+	loader: `spreadsheet`, ready: useSelector (s => s.loaded.gapiInit && s.signedIn && s.syncQueue.length === 0),
+	promise: () => gapi.client.sheets.spreadsheets.values.batchGet ({
+		spreadsheetId: SPREADSHEET_ID,
+		ranges: SHEETS.map (sheet => sheet [1]).map (sheetToRange),
+	}).then (({ result }) => SHEETS.map (([ key, name, headingRows ], index) => ([
+		key, parseSheet (result.valueRanges [index], headingRows),
+	])).reduce ((data, [ key, { rows, keys } ]) => ({
+		rows: { ...data.rows, [key]: rows },
+		keys: { ...data.keys, [key]: keys },
+	}), { rows: {}, keys: {} })),
+})
+
 const App = () => {
-	return h (Fragment, {}, [
-		h (Topbar),
-		h (Search),
-	])
-}
-
-const Topbar = () => {
-	return h (`div`, { class: `Topbar` }, [
-		h (SearchBox),
-		h (Indicator),
-		h (SearchHead),
-	])
-}
-const SearchBox = () => {
 	const dispatch = useDispatch ()
-	const addPerson = useCallback (() => dispatch ({ type: `APPEND`, sheet: `people`, row: { id: uuid (5), name: `First Last`, phone: `Phone`, note: `` } }))
-	return h (`div`, { class: `SearchBox` }, [
-		h (SearchInput),
-		h (`button`, { onClick: addPerson }, `Add person`),
-		h (CheckInCount),
-	])
-}
-
-const CheckInCount = () => {
-	const attendance = useSelector (s => s.rows.attendance)
-	const today = todayDate ()
-	const count = attendance.filter (r => r.date === today).length
-	return h (`span`, {}, `${count} ${count === 1 ? `person` : `people`} checked in today`)
-}
-
-const SearchInput = () => {
-	const dispatch = useDispatch ()
-	const search = useSelector (s => s.search)
-	const setSearch = useCallback (ev => dispatch ({ type: `SEARCH`, search: ev.target.value }), [ dispatch ])
-	return h (`input`, { class: `SearchInput`, placeholder: `Search by name or phone #`, onInput: setSearch, value: search })
-}
-
-const Indicator = () => {
+	const local = useSelector (s => s.loaded.local)
+	const hostNote = useCallback (() => {
+		const note = prompt (`Leave a note for the host`)
+		if (!note) return
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { todo: `NOTE ${note}` } })
+	}, [ dispatch ])
 	const signedIn = useSelector (s => s.signedIn)
-	const signIn = useCallback (() => gapi.auth2.getAuthInstance ().signIn ())
-	const signOut = useCallback (() => gapi.auth2.getAuthInstance ().signOut ())
+	const signIn = useCallback (() => gapi.auth2.getAuthInstance ().signIn (), [])
+	const signOut = useCallback (() => gapi.auth2.getAuthInstance ().signOut (), [])
+
+	if (!local) return null
+	return h (`main`, { className: `App Column` },
+		h (`header`, { className: `Row` },
+			h (`h1`, null, `Heart of Country Swing`),
+			h (Text, null, h (StatusIndicator)),
+			h (Button, { onClick: hostNote }, `Leave a note \u{1F5D2}\u{FE0F}`),
+			signedIn || h (Button, { onClick: signIn }, `Sign in \u{1F6AA}`),
+			signedIn && h (Button, { onClick: signOut }, `Sign out \u{1F512}`),
+		),
+		h (Search),
+	)
+}
+
+const StatusIndicator = () => {
+	const signedIn = useSelector (s => s.signedIn)
 	const loaded = useSelector (s => s.loaded)
 	const syncing = useSelector (s => s.syncQueue.length)
+	const t = timestampToday ()
+	const checkedIn = useSelector (s => s.rows.checkins.filter (r => r.date === t).length)
 
-	return h (`span`, { class: `Indicator` }, [
-		h (`span`, { class: `IndicatorLoading` }, h (IndicatorLoading, { signedIn, loaded, syncing })),
-		signedIn === false && h (`button`, { onClick: signIn }, `Sign in` ),
-		signedIn === true && h (`button`, { onClick: signOut }, `Sign out` ),
-	])
-}
-
-const IndicatorLoading = ({ signedIn, loaded, syncing }) => {
 	if (loaded.local === null) return `Loading cache`
 	if (!loaded.gapi) return `Loading gapi`
 	if (!loaded.auth2) return `Loading auth2 api`
@@ -359,153 +329,147 @@ const IndicatorLoading = ({ signedIn, loaded, syncing }) => {
 	if (signedIn === false) return `Not signed in`
 	if (!loaded.spreadsheet) return `Loading data`
 	if (syncing > 0) return `Saving ${syncing} ${syncing === 1 ? `change` :`changes`}`
-	return null
-}
-
-const SearchHead = () => {
-	return h (`div`, { class: `Head PersonRow` }, [
-		h (`span`, { class: `Cell`, sheet: `people`, column: `name` }, `Name`),
-		h (`span`, { class: `Cell`, sheet: `people`, column: `phone` }, `Phone`),
-		h (`span`, { class: `Cell`, sheet: `people`, column: `note` }, `Note`),
-		h (`div`, { class: `Cell`, sheet: `people`, column: `memberships` }, [
-			h (`div`, { class: `Row`, sheet: `memberships` }, [
-				h (`span`, { class: `Cell`, sheet: `memberships`, column: `plan` }, `Plan`),
-				h (`span`, { class: `Cell`, sheet: `memberships`, column: `start` }, `Start`),
-				h (`span`, { class: `Cell`, sheet: `memberships`, column: `end` }, `End`),
-				h (`span`, { class: `Cell`, sheet: `memberships`, column: `renewal` }, `Renew`),
-				h (`span`, { class: `Cell`, sheet: `memberships`, column: `checkin` }, `Check in`),
-				h (`span`, { class: `Cell`, sheet: `memberships`, column: `note` }, `Note`),
-			]),
-		]),
-	])
+	return `${checkedIn} ${checkedIn === 1 ? `person` : `people`} checked in`
 }
 
 const Search = () => {
-	const people = useSelector (s => s.rows.people)
-	const search = useSelector (s => s.search)
-	const matches = people.filter (person => {
-		if (person.name && person.name.toLowerCase ().indexOf (search.toLowerCase ()) !== -1) return true
-		if (person.phone && person.phone.indexOf (search) !== -1) return true
+	const dispatch = useDispatch ()
+	const { search } = useSelector (s => s.search)
+	const setSearch = useCallback (ev => {
+		dispatch ({ type: `SEARCH`, search: { search: ev.target.value, count: 5 } })
+	}, [ dispatch ])
+
+	return h (Fragment, null,
+		h (`input`, { className: `SearchInput`, placeholder: `Enter a name or phone #`, onChange: setSearch, value: search }),
+		h (Memberships),
+	)
+}
+
+const Memberships = () => {
+	const dispatch = useDispatch ()
+	const { search, count } = useSelector (s => s.search)
+	const moreMemberships = useCallback (() => {
+		dispatch ({ type: `SEARCH`, search: { search, count: count + 5 } })
+	}, [ dispatch, search, count ])
+
+	const memberships = useSelector (s => s.rows.memberships)
+	const sorted = useMemo (() => [ ...memberships ].sort ((a, b) => {
+		if (a.start < b.start) return 1
+		if (a.start > b.start) return -1
+		return 0
+	}), [ memberships ])
+	const filtered = useMemo (() => sorted.filter (membership => {
+		if (membership.name && membership.name.toLowerCase ().indexOf (search.toLowerCase ()) !== -1) return true
+		if (membership.phone && membership.phone.indexOf (search) !== -1) return true
 		return false
-	})
-	matches.reverse ()
-	return h (`div`, { class: `Search` }, [
-		...matches.slice (0, 20).map (({ index }) => {
-			return h (PersonRow, { key: index, index })
-		})
-	])
+	}), [ sorted, search ])
+	const limited = useMemo (() => filtered.slice (0, count), [ filtered, count ])
+	const hasMore = filtered.length > count
+
+	return h (`div`, { className: `List Memberships` },
+		limited.map (({ index }) => h (Membership, { key: index, index })),
+		hasMore || h (NewButtons),
+		hasMore && h (Button, { onClick: moreMemberships }, `More`),
+	)
 }
 
-const PersonRow = ({ index }) => {
-	const person = useSelector (s => s.rows.people [index])
-	const attendance = useShallowSelector (s => s.rows.attendance.filter (r => r.person === person.id))
-	const today = todayDate ()
-	const checkedIn = !!attendance.find (r => r.date === today)
-
-	return h (`div`, { class: `Row PersonRow` }, [
-		h (EditCell, { sheet: `people`, index, column: `name` }),
-		h (EditCell, { sheet: `people`, index, column: `phone` }),
-		h (EditCell, { sheet: `people`, index, column: `note` }),
-		h (PersonMemberships, { id: person.id, checkedIn }),
-	])
-}
-
-const PersonMemberships = ({ id, checkedIn }) => {
-	const memberships = useShallowSelector (s => s.rows.memberships.filter (r => r.person === id))
-
+const NewButtons = () => {
 	const dispatch = useDispatch ()
+	const { search } = useSelector (s => s.search)
 
+	const isPhone = search.match (/^\d+$/)
+	const extra = isPhone ? `with phone ${search}` : `named ${search}`
+
+	const newGuest = useCallback (() => {
+		const other = prompt (isPhone ? `Name for ${search}` : `Phone number for ${search}`)
+		if (!other) return
+		const name = isPhone ? other : search
+		const phone = isPhone ? search : other
+		const person = uuid ()
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW GUEST` } })
+		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `GUEST` } })
+	}, [ dispatch, search, isPhone ])
 	const newMembership = useCallback (() => {
-		const defaultPlan = store.getState ().rows.plans [0]
-		const row = { person: id, plan: defaultPlan.id, price: defaultPlan.price, start: todayDate (), end: ``, renewal: `` }
-		dispatch ({ type: `APPEND`, sheet: `memberships`, row })
-	}, [ dispatch, id ])
+		const other = prompt (isPhone ? `Name for ${search}` : `Phone number for ${search}`)
+		if (!other) return
+		const name = isPhone ? other : search
+		const phone = isPhone ? search : other
+		const plan = prompt (`Plan for ${name}`)
+		if (!plan) return
+		const person = uuid ()
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW MEMBER PLAN (${plan})` } })
+		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
+	}, [ dispatch, search, isPhone ])
 
-	if (memberships.length === 0) return h (`div`, { class: `Cell`, sheet: `people`, column: `memberships` }, [
-		h (`div`, { class: `Row`, sheet: `memberships`, current: null }, [
-			h (Cell, { sheet: `memberships`, column: `checkin` }, `NO MEMBERSHIP`),
-			h (ButtonCell, { sheet: `memberships`, column: `newmembership`,
-				onClick: newMembership }, `New membership`),
-		]),
-	])
-
-	const sortedMemberships = memberships.sort ((a, b) => {
-		a = fromDate (a.start), b = fromDate (b.start)
-		return a < b ? 1 : a > b ? -1 : 0
-	})
-
-	return h (`div`, { class: `Cell`, sheet: `people`, column: `memberships` }, sortedMemberships.map (({ index }, i) => {
-		return h (MembershipRow, { key: index, index, checkedIn, first: i === 0, newMembership })
-	}))
+	return h (Fragment, null,
+		h (Button, { onClick: newMembership }, `New member ${extra}`),
+		h (Button, { onClick: newGuest }, `New guest ${extra}`),
+	)
 }
 
-const MembershipRow = ({ index, first, checkedIn, newMembership }) => {
+const Membership = memo (({ index }) => {
+	const dispatch = useDispatch ()
 	const membership = useSelector (s => s.rows.memberships [index])
-	const current = !membership.end || (fromDate (membership.end) + 1000 * 60 * 60 * 24 >= Date.now () - 1000 * 60 * 60 * 4)
-	const canCheckIn = !!current
-	const showNew = !current && first
+	const expired = membership.end && membership.end < timestampToday ()
+	const checkInMember = useCallback (() => {
+		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
+	}, [ membership ])
+	const checkInGuest = useCallback (() => {
+		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `GUEST` } })
+	}, [ membership ])
+	const renewMembership = useCallback (() => {
+		const plan = prompt (`New plan for ${membership.name}`)
+		if (!plan) return
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person: membership.person, name: membership.name, phone: membership.phone, todo: `RENEW PLAN (${plan})` } })
+		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
+	}, [ membership ])
+	const hostNote = useCallback (() => {
+		const note = prompt (`Leave a note for the host`)
+		if (!note) return
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person: membership.person, name: membership.name, phone: membership.phone, todo: `NOTE ${note}` } })
+	}, [ membership ])
 
-	const dispatch = useDispatch ()
+	const checkIns = useShallowSelector (s => s.rows.checkins.filter (r => r.person === membership.person))
+	const t = timestampToday ()
+	const checkedIn = !!checkIns.find (r => r.date === t)
+	const loyalty = useMemo (() => {
+		const total = checkIns.length
+		const guests = checkIns.filter (r => r.note === `GUEST`).length
+		return total - guests
+	}, [ checkIns ])
 
-	const checkIn = useCallback (() => {
-		const row = { person: membership.person, date: todayDate (), time: nowTime () }
-		dispatch ({ type: `APPEND`, sheet: `attendance`, row })
-	}, [ dispatch, membership.person ])
+	return h (`article`, { className: `Membership Row${expired ? ` expired` : ``}` },
+		h (TextCell, { className: `Person` }, membership.person),
+		h (TextCell, { className: `Name` }, membership.name),
+		h (TextCell, { className: `Phone` }, membership.phone),
+		h (TextCell, { className: `Plan` }, `${membership.plan}, from ${formatDate (membership.start)}${membership.end ? ` to ${formatDate (membership.end)}` : ``}`),
+		h (TextCell, { className: `End` }, ),
+		h (TextCell, { className: `Note Spacer` }, membership.note),
+		h (TextCell, { className: `Loyalty` }, `${loyalty}x`),
+		checkedIn || expired || h (Button, { onClick: checkInMember }, `Check in`),
+		checkedIn || expired && h (Button, { onClick: checkInGuest }, `As guest`),
+		checkedIn && h (Button, { disabled: true }, `Checked in`),
+		expired && h (Button, { onClick: renewMembership }, `Renew`),
+		h (Button, { onClick: hostNote }, `\u{1F5D2}\u{FE0F}`),
+	)
+})
 
-	return h (`div`, { class: `Row`, sheet: `memberships`, current: current ? `true` : null }, [
-		h (EditCell, { sheet: `memberships`, index, column: `plan` }),
-		h (EditCell, { sheet: `memberships`, index, column: `start`,
-			prettify: d => isNaN (new Date (d)) ? d : toDate (d) }),
-		h (EditCell, { sheet: `memberships`, index, column: `end`,
-			prettify: d => isNaN (new Date (d)) ? d : toDate (d) }),
-		h (EditCell, { sheet: `memberships`, index, column: `renewal`,
-			prettify: v => v ? ordinal (v) : `` }),
-		!canCheckIn && first && h (Cell, { sheet: `memberships`, column: `checkin` }, `MEMBERSHIP ISSUE TALK TO HOST`),
-		!canCheckIn && !first && h (Cell, { sheet: `memberships`, column: `checkin` }, `INACTIVE`),
-		canCheckIn && checkedIn && h (ButtonCell, { sheet: `memberships`, column: `checkin`,
-			disabled: true }, `\u2714\uFE0F Checked in`),
-		canCheckIn && !checkedIn && h (ButtonCell, { sheet: `memberships`, column: `checkin`,
-			onClick: checkIn }, `\u{1F449} Check in`),
-		h (EditCell, { sheet: `memberships`, index, column: `note` }),
-		showNew && h (ButtonCell, { sheet: `memberships`, column: `newmembership`,
-			onClick: newMembership }, `New membership`),
-	])
+const TextCell = ({ className = ``, children, ...props }) => {
+	return h (Cell, { className: `Cell ${className}`, ...props },
+		h (Text, null, children),
+	)
 }
 
-const Cell = ({ sheet, column, children }) => {
-	return h (`span`, { class: `Cell`, sheet, column }, children)
+const Cell = ({ className = ``, children, ...props }) => {
+	return h (`span`, { className: `Cell ${className}`, ...props }, children)
 }
 
-const EditCell = ({ sheet, index, column, prettify }) => {
-	const value = useSelector (s => s.rows [sheet] [index] [column])
-	const [ editing, setEditing ] = useState (false)
-	const [ temp, setTemp ] = useState (``)
-	const input = useCallback (ev => setTemp (ev.target.value), [ setTemp ])
-	const startEditing = useCallback (() => {
-		setTemp (value)
-		setEditing (true)
-	}, [ value, setEditing ])
-	const dispatch = useDispatch ()
-	const stopEditing = useCallback (() => {
-		if (value !== temp) dispatch ({ type: `UPDATE`, sheet, index, column, value: temp })
-		setEditing (false)
-	}, [ dispatch, sheet, index, column, temp, setEditing ])
-	const inputRef = useRef (null)
-	useEffect (() => { editing && inputRef.current.select () }, [ editing ])
-
-	if (editing) {
-		return h (`form`, { class: `Cell`, sheet, column, onSubmit: stopEditing }, [
-			h (`input`, { ref: inputRef, value: temp, onInput: input, onBlur: stopEditing })
-		])
-	} else {
-		const pretty = prettify ? prettify (value) : value
-		return h (`span`, { class: `Cell`, sheet, column,
-			onDoubleClick: startEditing }, pretty)
-	}
+const Button = ({ className = ``, onClick, children, ...props }) => {
+	return h (`button`, { className: `Button ${className}`, onClick, ...props }, children)
 }
 
-const ButtonCell = ({ sheet, column, disabled, onClick, children }) => {
-	return h (`button`, { class: `Cell`, sheet, column, disabled, onClick }, children)
+const Text = ({ className = ``, children, ...props }) => {
+	return h (`span`, { className: `Text ${className}`, ...props }, children)
 }
 
 document.addEventListener (`readystatechange`, ev => {
