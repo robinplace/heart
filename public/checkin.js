@@ -319,7 +319,8 @@ const StatusIndicator = () => {
 	const loaded = useSelector (s => s.loaded)
 	const syncing = useSelector (s => s.syncQueue.length)
 	const t = timestampToday ()
-	const checkedIn = useSelector (s => s.rows.checkins.filter (r => r.date === t).length)
+	const total = useSelector (s => s.rows.checkins.filter (r => r.date === t).length)
+	const guests = useSelector (s => s.rows.checkins.filter (r => r.date === t && r.note === `GUEST`).length)
 
 	if (loaded.local === null) return `Loading cache`
 	if (!loaded.gapi) return `Loading gapi`
@@ -329,7 +330,8 @@ const StatusIndicator = () => {
 	if (signedIn === false) return `Not signed in`
 	if (!loaded.spreadsheet) return `Loading data`
 	if (syncing > 0) return `Saving ${syncing} ${syncing === 1 ? `change` :`changes`}`
-	return `${checkedIn} ${checkedIn === 1 ? `person` : `people`} checked in`
+
+	return `${total} ${total === 1 ? `person` : `people`} checked in (${total - guests} ${total - guests === 1 ? `member` : `members`} and ${guests} ${guests === 1 ? `guest` : `guests`})`
 }
 
 const Search = () => {
