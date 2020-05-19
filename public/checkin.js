@@ -73,7 +73,7 @@ const store = createStore (combineReducers ({
 		case `LOADED`: return action.payload.keys || keys
 		default: return keys
 	} },
-	search: (search = { search: ``, count: 5 }, action) => { switch (action.type) {
+	search: (search = { search: ``, count: 7 }, action) => { switch (action.type) {
 		case `LOADED`: return { ...search, ...action.payload.search }
 		case `SEARCH`: return action.search
 		default: return search
@@ -338,7 +338,7 @@ const Search = () => {
 	const dispatch = useDispatch ()
 	const { search } = useSelector (s => s.search)
 	const setSearch = useCallback (ev => {
-		dispatch ({ type: `SEARCH`, search: { search: ev.target.value, count: 5 } })
+		dispatch ({ type: `SEARCH`, search: { search: ev.target.value, count: 7 } })
 	}, [ dispatch ])
 
 	return h (Fragment, null,
@@ -351,7 +351,7 @@ const Memberships = () => {
 	const dispatch = useDispatch ()
 	const { search, count } = useSelector (s => s.search)
 	const moreMemberships = useCallback (() => {
-		dispatch ({ type: `SEARCH`, search: { search, count: count + 5 } })
+		dispatch ({ type: `SEARCH`, search: { search, count: count + 7 } })
 	}, [ dispatch, search, count ])
 
 	const memberships = useSelector (s => s.rows.memberships)
