@@ -7,7 +7,7 @@ const GAPI_INIT = {
 }
 const SHEETS = [
 	[ `memberships`, `Memberships`, 2 ],
-	[ `todo`,        `Todo`,        2 ],
+	[ `todo`,        `To do`,       2 ],
 	[ `checkins`,    `Checkins`,    2 ],
 ]
 const HEADINGS = [
@@ -154,8 +154,8 @@ const appendSheet = (sheet, row) => {
 const formatValue = (value, type) => { switch (type) {
 	case `date`: return value ? formatDate (value) : ``
 	case `time`: return value ? formatTime (value) : ``
-	case `id`: return `'${value}`
-	default: return `${value}`
+	case `id`: return value ? `'${value}` : ``
+	default: return value ? `${value}` : ``
 } }
 
 const formatDate = timestamp => dateFns.format (timestamp, `MM/DD/YYYY`)
