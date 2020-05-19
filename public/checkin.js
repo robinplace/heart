@@ -329,9 +329,9 @@ const StatusIndicator = () => {
 	if (signedIn === null) return `Loading sign in`
 	if (signedIn === false) return `Not signed in`
 	if (!loaded.spreadsheet) return `Loading data`
-	if (syncing > 0) return `Saving ${syncing} ${syncing === 1 ? `change` :`changes`}`
+	const info = syncing > 0 ? `Saving ${syncing} ${syncing === 1 ? `change` :`changes`}, ` : ``
 
-	return `${total} ${total === 1 ? `person` : `people`} checked in (${total - guests} ${total - guests === 1 ? `member` : `members`} and ${guests} ${guests === 1 ? `guest` : `guests`})`
+	return `${info}${total} ${total === 1 ? `person` : `people`} checked in (${total - guests} ${total - guests === 1 ? `member` : `members`} and ${guests} ${guests === 1 ? `guest` : `guests`})`
 }
 
 const Search = () => {
@@ -382,15 +382,6 @@ const NewButtons = () => {
 	const isPhone = search.match (/^\d+$/)
 	const extra = isPhone ? `with phone ${search}` : `named ${search}`
 
-	const newGuest = useCallback (() => {
-		const other = prompt (isPhone ? `Name for ${search}` : `Phone number for ${search}`)
-		if (!other) return
-		const name = isPhone ? other : search
-		const phone = isPhone ? search : other
-		const person = uuid ()
-		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW GUEST` } })
-		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `GUEST` } })
-	}, [ dispatch, search, isPhone ])
 	const newMembership = useCallback (() => {
 		const other = prompt (isPhone ? `Name for ${search}` : `Phone number for ${search}`)
 		if (!other) return
@@ -401,6 +392,17 @@ const NewButtons = () => {
 		const person = uuid ()
 		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW MEMBER PLAN (${plan})` } })
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
+	}, [ dispatch, search, isPhone ])
+	const newGuest = useCallback (() => {
+		const other = prompt (isPhone ? `Name for ${search}` : `Phone number for ${search}`)
+		if (!other) return
+		const name = isPhone ? other : search
+		const phone = isPhone ? search : other
+		const note = prompt (`Note for ${name}`)
+		if (note === null) return
+		const person = uuid ()
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW GUEST (${note})` } })
+		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `GUEST` } })
 	}, [ dispatch, search, isPhone ])
 
 	return h (Fragment, null,
@@ -441,7 +443,7 @@ const Membership = memo (({ index }) => {
 	}, [ checkIns ])
 
 	return h (`article`, { className: `Membership Row${expired ? ` expired` : ``}` },
-		h (TextCell, { className: `Person` }, membership.person),
+		/*h (TextCell, { className: `Person` }, membership.person),*/
 		h (TextCell, { className: `Name` }, membership.name),
 		h (TextCell, { className: `Phone` }, membership.phone),
 		h (TextCell, { className: `Plan` }, `${membership.plan}, from ${formatDate (membership.start)}${membership.end ? ` to ${formatDate (membership.end)}` : ``}`),
