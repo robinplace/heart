@@ -295,7 +295,7 @@ const App = () => {
 	const hostNote = useCallback (() => {
 		const note = prompt (`Leave a note for the host`)
 		if (!note) return
-		dispatch ({ type: `APPEND`, sheet: `todo`, row: { todo: `NOTE ${note}` } })
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { todo: `NOTE: ${note}` } })
 	}, [ dispatch ])
 	const signedIn = useSelector (s => s.signedIn)
 	const signIn = useCallback (() => gapi.auth2.getAuthInstance ().signIn (), [])
@@ -390,7 +390,7 @@ const NewButtons = () => {
 		const plan = prompt (`Plan for ${name}`)
 		if (!plan) return
 		const person = uuid ()
-		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW MEMBER PLAN (${plan})` } })
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW MEMBER PLAN: ${plan}` } })
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
 	}, [ dispatch, search, isPhone ])
 	const newGuest = useCallback (() => {
@@ -401,7 +401,7 @@ const NewButtons = () => {
 		const note = prompt (`Note for ${name}`)
 		if (note === null) return
 		const person = uuid ()
-		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW GUEST (${note})` } })
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW GUEST: ${note}` } })
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `GUEST` } })
 	}, [ dispatch, search, isPhone ])
 
@@ -424,13 +424,13 @@ const Membership = memo (({ index }) => {
 	const renewMembership = useCallback (() => {
 		const plan = prompt (`New plan for ${membership.name}`)
 		if (!plan) return
-		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person: membership.person, name: membership.name, phone: membership.phone, todo: `RENEW PLAN (${plan})` } })
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person: membership.person, name: membership.name, phone: membership.phone, todo: `RENEW PLAN: ${plan}` } })
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
 	}, [ membership ])
 	const hostNote = useCallback (() => {
 		const note = prompt (`Leave a note for the host`)
 		if (!note) return
-		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person: membership.person, name: membership.name, phone: membership.phone, todo: `NOTE ${note}` } })
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person: membership.person, name: membership.name, phone: membership.phone, todo: `NOTE: ${note}` } })
 	}, [ membership ])
 
 	const checkIns = useShallowSelector (s => s.rows.checkins.filter (r => r.person === membership.person))
