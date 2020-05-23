@@ -389,7 +389,7 @@ const NewButtons = () => {
 		const phone = isPhone ? search : other
 		const plan = prompt (`Plan for ${name}`)
 		if (!plan) return
-		const person = uuid ()
+		const person = uuid (5)
 		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW MEMBER PLAN: ${plan}` } })
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
 	}, [ dispatch, search, isPhone ])
@@ -400,7 +400,7 @@ const NewButtons = () => {
 		const phone = isPhone ? search : other
 		const note = prompt (`Note for ${name}`)
 		if (note === null) return
-		const person = uuid ()
+		const person = uuid (5)
 		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW GUEST: ${note}` } })
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `GUEST` } })
 	}, [ dispatch, search, isPhone ])
