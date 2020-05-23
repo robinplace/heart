@@ -384,18 +384,18 @@ const NewButtons = () => {
 
 	const newMembership = useCallback (() => {
 		const other = prompt (isPhone ? `Name for ${search}` : `Phone number for ${search}`)
-		if (!other) return
+		if (other === null) return
 		const name = isPhone ? other : search
 		const phone = isPhone ? search : other
 		const plan = prompt (`Plan for ${name}`)
-		if (!plan) return
+		if (plan === null) return
 		const person = uuid (5)
 		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW MEMBER PLAN: ${plan}` } })
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
 	}, [ dispatch, search, isPhone ])
 	const newGuest = useCallback (() => {
 		const other = prompt (isPhone ? `Name for ${search}` : `Phone number for ${search}`)
-		if (!other) return
+		if (other === null) return
 		const name = isPhone ? other : search
 		const phone = isPhone ? search : other
 		const note = prompt (`Note for ${name}`)
@@ -423,7 +423,7 @@ const Membership = memo (({ index }) => {
 	}, [ membership ])
 	const renewMembership = useCallback (() => {
 		const plan = prompt (`New plan for ${membership.name}`)
-		if (!plan) return
+		if (plan === null) return
 		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person: membership.person, name: membership.name, phone: membership.phone, todo: `RENEW PLAN: ${plan}` } })
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
 	}, [ membership ])
