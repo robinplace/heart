@@ -484,3 +484,7 @@ document.addEventListener (`readystatechange`, ev => {
 		document.body.appendChild (wrapper)
 	}
 })
+
+if (navigator.serviceWorker) {
+	navigator.serviceWorker.register (`./worker.js`, { scope: `./` })
+}
