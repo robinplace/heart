@@ -1,4 +1,4 @@
-const VERSION = `v10`
+const VERSION = `v11`
 
 self.addEventListener (`install`, ev => ev.waitUntil (
 	caches.open (VERSION)
