@@ -322,16 +322,17 @@ const StatusIndicator = () => {
 	const total = useSelector (s => s.rows.checkins.filter (r => r.date === t).length)
 	const guests = useSelector (s => s.rows.checkins.filter (r => r.date === t && r.note === `GUEST`).length)
 
-	if (loaded.local === null) return `Loading cache`
-	if (!loaded.gapi) return `Loading gapi`
-	if (!loaded.auth2) return `Loading auth2 api`
-	if (!loaded.gapiInit) return `Connecting to gapi`
-	if (signedIn === null) return `Loading sign in`
-	if (signedIn === false) return `Not signed in`
-	if (!loaded.spreadsheet) return `Loading data`
+	let loading = ``
+	if (loaded.local === null) loading = `Loading cache`
+	else if (!loaded.gapi) loading = `Loading gapi`
+	else if (!loaded.auth2) loading = `Loading auth2 api`
+	else if (!loaded.gapiInit) loading = `Connecting to gapi`
+	else if (signedIn === null) loading = `Loading sign in`
+	else if (signedIn === false) loading = `Not signed in`
+	else if (!loaded.spreadsheet) loading = `Loading data`
 	const info = syncing > 0 ? `Saving ${syncing} ${syncing === 1 ? `change` :`changes`}, ` : ``
 
-	return `${info}${total} ${total === 1 ? `person` : `people`} checked in (${total - guests} ${total - guests === 1 ? `member` : `members`} and ${guests} ${guests === 1 ? `guest` : `guests`})`
+	return `${loading} ${info}${total} ${total === 1 ? `person` : `people`} checked in (${total - guests} ${total - guests === 1 ? `member` : `members`} and ${guests} ${guests === 1 ? `guest` : `guests`})`
 }
 
 const Search = () => {
