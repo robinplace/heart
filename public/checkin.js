@@ -337,13 +337,37 @@ const StatusIndicator = () => {
 
 const Search = () => {
 	const dispatch = useDispatch ()
-	const { search } = useSelector (s => s.search)
-	const setSearch = useCallback (ev => {
-		dispatch ({ type: `SEARCH`, search: { search: ev.target.value, count: 7 } })
-	}, [ dispatch ])
+	const up = useSelector (s => s.search.search)
+	const setUp = useCallback (up => dispatch ({ type: `SEARCH`, search: { search: up, count: 7 } }), [ dispatch ])
+	const upRef = useRef (up)
+
+	const [ down, setDown ] = useState (up)
+	const downRef = useRef (down)
+
+	const syncUp = useCallback (() => {
+		if (upRef.current === downRef.current) return
+		setUp (upRef.current = downRef.current)
+	}, [ downRef, down, setUp ])
+
+	const syncDown = useCallback (() => {
+		if (downRef.current === upRef.current) return
+		setDown (downRef.current = upRef.current)
+	}, [ upRef, up, setDown ])
+
+	useEffect (() => (
+		upRef.current = up
+		syncDown ()
+	}, [ up ])
+
+	const debounceTimeout = useRef (null)
+	const debouncedSetDown = useCallback (ev => {
+		setDown (downRef.current = ev.target.value)
+		cancelAnimationFrame (debounceTimeout.current)
+		debounceTimeout.current = requestAnimationFrame (syncUp)
+	}, [ setDown, syncUp, debounceTimeout ])
 
 	return h (Fragment, null,
-		h (`input`, { className: `SearchInput`, placeholder: `Enter a name or phone #`, onChange: setSearch, value: search }),
+		h (`input`, { className: `SearchInput`, placeholder: `Enter a name or phone #`, onChange: debouncedSetDown, value: down }),
 		h (Memberships),
 	)
 }
