@@ -354,7 +354,7 @@ const Search = () => {
 		setDown (downRef.current = upRef.current)
 	}, [ upRef, up, setDown ])
 
-	useEffect (() => (
+	useEffect (() => {
 		upRef.current = up
 		syncDown ()
 	}, [ up ])
