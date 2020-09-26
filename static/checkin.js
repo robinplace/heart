@@ -5,11 +5,13 @@ const GAPI_INIT = {
 	scope: `https://www.googleapis.com/auth/spreadsheets`,
 	discoveryDocs: [ `https://sheets.googleapis.com/$discovery/rest?version=v4` ],
 }
+// sheet key, sheet proper name, number of heading rows
 const SHEETS = [
 	[ `memberships`, `Memberships`, 2 ],
 	[ `todo`,        `To do`,       2 ],
 	[ `checkins`,    `Checkins`,    2 ],
 ]
+// row key, row heading, data type
 const HEADINGS = [
 	[ `person`,  `PERSON`,  `id`     ],
 	[ `name`,    `NAME`,    `text`   ],
@@ -25,6 +27,9 @@ const HEADINGS = [
 	[ `time`,    `TIME`,    `time`   ],
 	[ `todo`,    `TODO`,    `text`   ],
 ]
+// sort priority for spreadsheet data
+const SORT_BY = [ `start`, `date`, `time` ]
+// number of memberships on a page
 const PAGE_SIZE = 10
 
 const { createStore, combineReducers, applyMiddleware } = Redux
@@ -115,6 +120,14 @@ const parseSheet = ({ values }, headingRows) => {
 			return { [key]: parseValue (value, type), ...rows }
 		}, { index: rows.length }))
 	}
+	rows.sort ((a, b) => {
+		for (let i = 0; i < SORT_BY.length; i++) {
+			const key = SORT_BY [i]
+			if (a [key] < b [key]) return 1
+			if (a [key] > b [key]) return -1
+		}
+		return 0
+	})
 
 	const keys = headings.map (heading => heading && heading [0])
 
@@ -384,16 +397,11 @@ const Memberships = () => {
 	}, [ dispatch, search, count ])
 
 	const memberships = useSelector (s => s.rows.memberships)
-	const sorted = useMemo (() => [ ...memberships ].sort ((a, b) => {
-		if (a.start < b.start) return 1
-		if (a.start > b.start) return -1
-		return 0
-	}), [ memberships ])
-	const filtered = useMemo (() => sorted.filter (membership => {
+	const filtered = useMemo (() => memberships.filter (membership => {
 		if (membership.name && membership.name.toLowerCase ().indexOf (search.toLowerCase ()) !== -1) return true
 		if (membership.phone && membership.phone.indexOf (search) !== -1) return true
 		return false
-	}), [ sorted, search ])
+	}), [ memberships, search ])
 	const limited = useMemo (() => filtered.slice (0, count), [ filtered, count ])
 	const hasMore = filtered.length > count
 
