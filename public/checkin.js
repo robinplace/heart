@@ -25,6 +25,7 @@ const HEADINGS = [
 	[ `time`,    `TIME`,    `time`   ],
 	[ `todo`,    `TODO`,    `text`   ],
 ]
+const PAGE_SIZE = 10
 
 const { createStore, combineReducers, applyMiddleware } = Redux
 const { createElement: h, Fragment, memo, useState, useReducer, useMemo, useEffect, useCallback, useRef } = React
@@ -73,7 +74,7 @@ const store = createStore (combineReducers ({
 		case `LOADED`: return action.payload.keys || keys
 		default: return keys
 	} },
-	search: (search = { search: ``, count: 7 }, action) => { switch (action.type) {
+	search: (search = { search: ``, count: PAGE_SIZE }, action) => { switch (action.type) {
 		case `LOADED`: return { ...search, ...action.payload.search }
 		case `SEARCH`: return action.search
 		default: return search
@@ -172,7 +173,7 @@ const toOrdinal = n => n + ([,'st','nd','rd'][n%100>>3^1&&n%10]||'th')
 const sheetToRange = sheet => `${sheet}!A:ZZ`
 
 const Wrapper = () => {
-	return h (React.Fragment, null,
+	return h (Fragment, null,
 		h (LocalLoader),
 		h (LocalWorker),
 		h (GapiLoader),
@@ -320,7 +321,7 @@ const StatusIndicator = () => {
 	const syncing = useSelector (s => s.syncQueue.length)
 	const t = timestampToday ()
 	const total = useSelector (s => s.rows.checkins.filter (r => r.date === t).length)
-	const guests = useSelector (s => s.rows.checkins.filter (r => r.date === t && r.note === `GUEST`).length)
+	const news = useSelector (s => s.rows.checkins.filter (r => r.date === t && r.note === `NEW`).length)
 
 	let loading = ``
 	if (loaded.local === null) loading = `Loading cache`
@@ -332,13 +333,16 @@ const StatusIndicator = () => {
 	else if (!loaded.spreadsheet) loading = `Loading data`
 	const info = syncing > 0 ? `Saving ${syncing} ${syncing === 1 ? `change` :`changes`}, ` : ``
 
-	return `${loading} ${info}${total} ${total === 1 ? `person` : `people`} checked in (${total - guests} ${total - guests === 1 ? `member` : `members`} and ${guests} ${guests === 1 ? `guest` : `guests`})`
+	return h (Fragment, null,
+		loading && `${loading}: `,
+		`${info}${total} ${total === 1 ? `person` : `people`} checked in (${total - news} ${total - news === 1 ? `member` : `members`} and ${news} new)`
+	)
 }
 
 const Search = () => {
 	const dispatch = useDispatch ()
 	const up = useSelector (s => s.search.search)
-	const setUp = useCallback (up => dispatch ({ type: `SEARCH`, search: { search: up, count: 7 } }), [ dispatch ])
+	const setUp = useCallback (up => dispatch ({ type: `SEARCH`, search: { search: up, count: PAGE_SIZE } }), [ dispatch ])
 	const upRef = useRef (up)
 
 	const [ down, setDown ] = useState (up)
@@ -376,7 +380,7 @@ const Memberships = () => {
 	const dispatch = useDispatch ()
 	const { search, count } = useSelector (s => s.search)
 	const moreMemberships = useCallback (() => {
-		dispatch ({ type: `SEARCH`, search: { search, count: count + 7 } })
+		dispatch ({ type: `SEARCH`, search: { search, count: count + PAGE_SIZE } })
 	}, [ dispatch, search, count ])
 
 	const memberships = useSelector (s => s.rows.memberships)
@@ -405,34 +409,17 @@ const NewButtons = () => {
 	const { search } = useSelector (s => s.search)
 
 	const isPhone = search.match (/^\d+$/)
-	const extra = isPhone ? `with phone ${search}` : `named ${search}`
 
-	const newMembership = useCallback (() => {
-		const other = prompt (isPhone ? `Name for ${search}` : `Phone number for ${search}`)
-		if (other === null) return
-		const name = isPhone ? other : search
-		const phone = isPhone ? search : other
-		const plan = prompt (`Plan for ${name}`)
-		if (plan === null) return
+	const newPerson = useCallback (() => {
+		const name = search
 		const person = uuid (5)
-		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW MEMBER PLAN: ${plan}` } })
-		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
-	}, [ dispatch, search, isPhone ])
-	const newGuest = useCallback (() => {
-		const other = prompt (isPhone ? `Name for ${search}` : `Phone number for ${search}`)
-		if (other === null) return
-		const name = isPhone ? other : search
-		const phone = isPhone ? search : other
-		const note = prompt (`Note for ${name}`)
-		if (note === null) return
-		const person = uuid (5)
-		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone, todo: `NEW GUEST: ${note}` } })
-		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `GUEST` } })
-	}, [ dispatch, search, isPhone ])
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone: ``, todo: `NEW PERSON` } })
+		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `NEW` } })
+		dispatch ({ type: `SEARCH`, search: { search: ``, count: PAGE_SIZE } })
+	}, [ dispatch, search ])
 
 	return h (Fragment, null,
-		h (Button, { onClick: newMembership }, `New member ${extra}`),
-		h (Button, { onClick: newGuest }, `New guest ${extra}`),
+		isPhone || h (Button, { onClick: newPerson }, `Add person named ${search}`),
 	)
 }
 
@@ -443,8 +430,8 @@ const Membership = memo (({ index }) => {
 	const checkInMember = useCallback (() => {
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
 	}, [ membership ])
-	const checkInGuest = useCallback (() => {
-		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `GUEST` } })
+	const checkInCouple = useCallback (() => {
+		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `COUPLE` } })
 	}, [ membership ])
 	const renewMembership = useCallback (() => {
 		const plan = prompt (`New plan for ${membership.name}`)
@@ -463,8 +450,8 @@ const Membership = memo (({ index }) => {
 	const checkedIn = !!checkIns.find (r => r.date === t)
 	const loyalty = useMemo (() => {
 		const total = checkIns.length
-		const guests = checkIns.filter (r => r.note === `GUEST`).length
-		return total - guests
+		const news = checkIns.filter (r => r.note === `NEW`).length
+		return total - news
 	}, [ checkIns ])
 
 	return h (`article`, { className: `Membership Row${expired ? ` expired` : ``}` },
@@ -476,9 +463,9 @@ const Membership = memo (({ index }) => {
 		h (TextCell, { className: `Note Spacer` }, membership.note),
 		h (TextCell, { className: `Loyalty` }, `${loyalty}x`),
 		checkedIn || expired || h (Button, { onClick: checkInMember }, `Check in`),
-		checkedIn || expired && h (Button, { onClick: checkInGuest }, `As guest`),
+		checkedIn || expired && h (Button, { onClick: checkInCouple }, `With a couple`),
+		expired && h (Button, { onClick: renewMembership }, `Just renewed`),
 		checkedIn && h (Button, { disabled: true }, `Checked in`),
-		expired && h (Button, { onClick: renewMembership }, `Renew`),
 		h (Button, { onClick: hostNote }, `\u{1F5D2}\u{FE0F}`),
 	)
 })

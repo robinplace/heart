@@ -39,7 +39,7 @@ header { width: 100%; }
 
 .Membership { padding: 5px 0; }
 .Membership:not(:first-child) { border-top: 1px solid #ccc; margin-top: -1px; }
-.Membership.expired { color: #f4cccc; }
+.Membership.expired { color: #da2a27; }
 .Cell.Person { width: 60px; }
 .Cell.Name { width: 160px; }
 .Cell.Note { text-align: right; }
