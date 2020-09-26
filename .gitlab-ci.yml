@@ -7,6 +7,7 @@ pages:
   - sed -i "s/%SPREADSHEET_ID%/$SPREADSHEET_ID/" static/checkin.js
   - sed -i "s/%CLIENT_ID%/$CLIENT_ID/" static/checkin.js
   - sed -i "s/%API_KEY%/$API_KEY/" static/checkin.js
+  - sed -i "s/%COMMIT_SHORT_SHA%/$CI_COMMIT_SHORT_SHA/" static/worker.js
   - mv static public
   artifacts:
     paths:

@@ -1,4 +1,4 @@
-const VERSION = `v17`
+const VERSION = `%COMMIT_SHORT_SHA%`
 
 self.addEventListener (`install`, ev => ev.waitUntil (
 	caches.open (VERSION)
