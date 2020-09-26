@@ -426,12 +426,13 @@ const NewButtons = () => {
 const Membership = memo (({ index }) => {
 	const dispatch = useDispatch ()
 	const membership = useSelector (s => s.rows.memberships [index])
+	const latest = useSelector (s => !s.rows.memberships.slice (0, index).find (m => m.person === s.rows.memberships [index].person))
 	const expired = membership.end && membership.end < timestampToday ()
 	const checkInMember = useCallback (() => {
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
 	}, [ membership ])
-	const checkInCouple = useCallback (() => {
-		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `COUPLE` } })
+	const checkInGuest = useCallback (() => {
+		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `GUEST` } })
 	}, [ membership ])
 	const renewMembership = useCallback (() => {
 		const plan = prompt (`New plan for ${membership.name}`)
@@ -461,12 +462,14 @@ const Membership = memo (({ index }) => {
 		h (TextCell, { className: `Plan` }, `${membership.plan}, from ${formatDate (membership.start)}${membership.end ? ` to ${formatDate (membership.end)}` : ``}`),
 		h (TextCell, { className: `End` }, ),
 		h (TextCell, { className: `Note Spacer` }, membership.note),
-		h (TextCell, { className: `Loyalty` }, `${loyalty}x`),
-		checkedIn || expired || h (Button, { onClick: checkInMember }, `Check in`),
-		checkedIn || expired && h (Button, { onClick: checkInCouple }, `With a couple`),
-		expired && h (Button, { onClick: renewMembership }, `Just renewed`),
-		checkedIn && h (Button, { disabled: true }, `Checked in`),
-		h (Button, { onClick: hostNote }, `\u{1F5D2}\u{FE0F}`),
+		latest && h (Fragment, null,
+			h (TextCell, { className: `Loyalty` }, `${loyalty}x`),
+			checkedIn || expired || h (Button, { onClick: checkInMember }, `Check in`),
+			checkedIn || expired && h (Button, { onClick: checkInGuest }, `Guest`),
+			expired && h (Button, { onClick: renewMembership }, `Renewed`),
+			checkedIn && h (Button, { disabled: true }, `Checked in`),
+			h (Button, { onClick: hostNote }, `\u{1F5D2}\u{FE0F}`),
+		),
 	)
 })
 
