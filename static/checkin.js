@@ -202,11 +202,11 @@ const Loader = ({ loader, ready, promise, retry = true }) => {
 const LocalLoader = () => h (Loader, {
 	loader: `local`, ready: true, retry: false,
 	promise: () => Promise.resolve ({
-		keys: JSON.parse (localStorage.getItem (`keys`) || `{}`),
-		rows: JSON.parse (localStorage.getItem (`rows`) || `{}`),
-		syncQueue: JSON.parse (localStorage.getItem (`syncQueue`) || `[]`),
-		signedIn: JSON.parse (localStorage.getItem (`signedIn`) || `false`),
-		search: JSON.parse (localStorage.getItem (`search`) || `{}`),
+		keys: JSON.parse (localStorage.getItem (`keys`) || `null`),
+		rows: JSON.parse (localStorage.getItem (`rows`) || `null`),
+		syncQueue: JSON.parse (localStorage.getItem (`syncQueue`) || `null`),
+		signedIn: JSON.parse (localStorage.getItem (`signedIn`) || `null`),
+		search: JSON.parse (localStorage.getItem (`search`) || `null`),
 	}),
 })
 
