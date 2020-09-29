@@ -8,6 +8,9 @@ pages:
   - sed -i "s/%CLIENT_ID%/$CLIENT_ID/" static/checkin.js
   - sed -i "s/%API_KEY%/$API_KEY/" static/checkin.js
   - sed -i "s/%COMMIT_SHORT_SHA%/$CI_COMMIT_SHORT_SHA/" static/worker.js
+  - sed -i "s/%PROJECT_NAME%/$PROJECT_NAME/" static/worker.js
+  - sed -i "s/%PROJECT_NAME%/$PROJECT_NAME/" static/checkin.js
+  - sed -i "s/%PROJECT_NAME%/$PROJECT_NAME/" static/checkin.html
   - mv static public
   artifacts:
     paths:

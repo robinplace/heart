@@ -306,10 +306,10 @@ const SpreadsheetLoader = () => h (Loader, {
 const App = () => {
 	const dispatch = useDispatch ()
 	const local = useSelector (s => s.loaded.local)
-	const hostNote = useCallback (() => {
-		const note = prompt (`Leave a note for the host`)
-		if (!note) return
-		dispatch ({ type: `APPEND`, sheet: `todo`, row: { todo: `NOTE: ${note}` } })
+	const newCheckIn = useCallback (() => {
+		const person = uuid (5)
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name: ``, phone: ``, todo: `NEW PERSON` } })
+		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `NEW` } })
 	}, [ dispatch ])
 	const signedIn = useSelector (s => s.signedIn)
 	const signIn = useCallback (() => gapi.auth2.getAuthInstance ().signIn (), [])
@@ -318,9 +318,9 @@ const App = () => {
 	if (!local) return null
 	return h (`main`, { className: `App Column` },
 		h (`header`, { className: `Row` },
-			h (`h1`, null, `Heart of Country Swing`),
+			h (`h1`, null, `%PROJECT_NAME%`),
 			h (Text, null, h (StatusIndicator)),
-			h (Button, { onClick: hostNote }, `Leave a note \u{1F5D2}\u{FE0F}`),
+			h (Button, { onClick: newCheckIn }, `New check in \u{2795}\u{FE0F}`),
 			signedIn || h (Button, { onClick: signIn }, `Sign in \u{1F6AA}`),
 			signedIn && h (Button, { onClick: signOut }, `Sign out \u{1F512}`),
 		),
@@ -383,8 +383,11 @@ const Search = () => {
 		debounceTimeout.current = requestAnimationFrame (syncUp)
 	}, [ setDown, syncUp, debounceTimeout ])
 
+	const input = useRef ()
+	useEffect (() => input.current.focus (), [])
+
 	return h (Fragment, null,
-		h (`input`, { className: `SearchInput`, placeholder: `Enter a name or phone #`, onChange: debouncedSetDown, value: down }),
+		h (`input`, { ref: input, className: `SearchInput`, placeholder: `Enter a name or phone #`, onChange: debouncedSetDown, value: down }),
 		h (Memberships),
 	)
 }
@@ -407,27 +410,7 @@ const Memberships = () => {
 
 	return h (`div`, { className: `List Memberships` },
 		limited.map (({ index }) => h (Membership, { key: index, index })),
-		hasMore || h (NewButtons),
 		hasMore && h (Button, { onClick: moreMemberships }, `More`),
-	)
-}
-
-const NewButtons = () => {
-	const dispatch = useDispatch ()
-	const { search } = useSelector (s => s.search)
-
-	const isPhone = search.match (/^\d+$/)
-
-	const newPerson = useCallback (() => {
-		const name = search
-		const person = uuid (5)
-		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person, name, phone: ``, todo: `NEW PERSON` } })
-		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person, date: timestampToday (), time: timestampNow (), note: `NEW` } })
-		dispatch ({ type: `SEARCH`, search: { search: ``, count: PAGE_SIZE } })
-	}, [ dispatch, search ])
-
-	return h (Fragment, null,
-		isPhone || h (Button, { onClick: newPerson }, `Add person named ${search}`),
 	)
 }
 
@@ -472,9 +455,9 @@ const Membership = memo (({ index }) => {
 		h (TextCell, { className: `Note Spacer` }, membership.note),
 		latest && h (Fragment, null,
 			h (TextCell, { className: `Loyalty` }, `${loyalty}x`),
-			checkedIn || expired || h (Button, { onClick: checkInMember }, `Check in`),
-			checkedIn || expired && h (Button, { onClick: checkInGuest }, `Guest`),
-			expired && h (Button, { onClick: renewMembership }, `Renewed`),
+			checkedIn || expired || h (Button, { onClick: checkInMember }, `Check in \u{1F920}`),
+			checkedIn || expired && h (Button, { onClick: checkInGuest }, `Check in as guest`),
+			expired && h (Button, { onClick: renewMembership }, `Renew`),
 			checkedIn && h (Button, { disabled: true }, `Checked in`),
 			h (Button, { onClick: hostNote }, `\u{1F5D2}\u{FE0F}`),
 		),
