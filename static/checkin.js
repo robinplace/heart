@@ -118,7 +118,7 @@ const parseSheet = ({ values }, headingRows) => {
 			const [ key, column, type ] = heading
 			// again, prefer the first occurrence
 			return { [key]: parseValue (value, type), ...rows }
-		}, { index: rows.length }))
+		}, {}))
 	}
 	rows.sort ((a, b) => {
 		for (let i = 0; i < SORT_BY.length; i++) {
@@ -128,6 +128,8 @@ const parseSheet = ({ values }, headingRows) => {
 		}
 		return 0
 	})
+	let i = 0
+	rows.forEach (row => row.index = i++)
 
 	const keys = headings.map (heading => heading && heading [0])
 
