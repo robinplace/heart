@@ -432,9 +432,7 @@ const Membership = memo (({ index }) => {
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `GUEST` } })
 	}, [ membership ])
 	const renewMembership = useCallback (() => {
-		const plan = prompt (`New plan for ${membership.name}`)
-		if (plan === null) return
-		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person: membership.person, name: membership.name, phone: membership.phone, todo: `RENEW PLAN: ${plan}` } })
+		dispatch ({ type: `APPEND`, sheet: `todo`, row: { date: timestampToday (), time: timestampNow (), person: membership.person, name: membership.name, phone: membership.phone, todo: `RENEW MEMBERSHIP` } })
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })
 	}, [ membership ])
 	const hostNote = useCallback (() => {
