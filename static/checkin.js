@@ -118,7 +118,7 @@ const parseSheet = ({ values }, headingRows) => {
 			const [ key, column, type ] = heading
 			// again, prefer the first occurrence
 			return { [key]: parseValue (value, type), ...rows }
-		}, {}))
+		}, { index: rows.length }))
 	}
 	rows.sort ((a, b) => {
 		for (let i = 0; i < SORT_BY.length; i++) {
@@ -128,8 +128,6 @@ const parseSheet = ({ values }, headingRows) => {
 		}
 		return 0
 	})
-	let i = 0
-	rows.forEach (row => row.index = i++)
 
 	const keys = headings.map (heading => heading && heading [0])
 
@@ -418,8 +416,14 @@ const Memberships = () => {
 
 const Membership = memo (({ index }) => {
 	const dispatch = useDispatch ()
-	const membership = useSelector (s => s.rows.memberships [index])
-	const latest = useSelector (s => !s.rows.memberships.slice (0, index).find (m => m.person === s.rows.memberships [index].person))
+	const membership = useSelector (s => s.rows.memberships.find (m => m.index === index))
+	const latest = useSelector (s => {
+		for (let i = 0; i < s.rows.memberships.length; i++) {
+			const m = s.rows.memberships [i]
+			if (m === membership) return true
+			if (m.person === membership.person) return false
+		}
+	})
 	const expired = membership.end && membership.end < timestampToday ()
 	const checkInMember = useCallback (() => {
 		dispatch ({ type: `APPEND`, sheet: `checkins`, row: { person: membership.person, date: timestampToday (), time: timestampNow (), note: `MEMBER` } })

@@ -37,7 +37,7 @@ header { width: 100%; }
 
 .SearchInput { width: auto; }
 
-.Membership { padding: 5px 0; }
+.Membership { height: 60px; padding: 5px 0; }
 .Membership:not(:first-child) { border-top: 1px solid #ccc; margin-top: -1px; }
 .Membership.expired { color: #da2a27; }
 .Cell.Person { width: 60px; }
